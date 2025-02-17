@@ -44,6 +44,10 @@ const createScene = () => {
     const vehicleMaterial = new BABYLON.StandardMaterial('vehicleMaterial', scene);
     vehicleMaterial.diffuseColor = new BABYLON.Color3(0, 0.5, 0.8);
     vehicle.material = vehicleMaterial;
+
+    // Bake transformations and freeze world matrix before registering with Yuka
+    vehicle.bakeCurrentTransformIntoVertices();
+    vehicle.freezeWorldMatrix();
     
     // Initialize Yuka
     const entityManager = new YUKA.EntityManager();
@@ -51,22 +55,26 @@ const createScene = () => {
     
     // Create Yuka vehicle
     const yukaVehicle = new YUKA.Vehicle();
+    
+    // Sync function that properly handles matrix transformation
+    function sync(entity, renderComponent) {
+        BABYLON.Matrix.FromValues(...entity.worldMatrix.elements).decomposeToTransformNode(renderComponent);
+    }
+    
+    // Set render component with proper sync function
     yukaVehicle.setRenderComponent(vehicle, sync);
-    yukaVehicle.position.set(0, 0, 0);
+    yukaVehicle.position.set(0, 0.5, 0); // Match the Y position we set for the mesh
     yukaVehicle.maxSpeed = 3;
     yukaVehicle.maxForce = 1;
     
     // Add vehicle to entity manager
     entityManager.add(yukaVehicle);
     
-    // Sync Babylon.js mesh with Yuka entity
-    function sync(entity, renderComponent) {
-        renderComponent.position.x = entity.position.x;
-        renderComponent.position.z = entity.position.z;
-        renderComponent.rotation.y = entity.rotation.y;
-    }
+    // Add some basic steering behavior (wander)
+    const wanderBehavior = new YUKA.WanderBehavior();
+    yukaVehicle.steering.add(wanderBehavior);
     
-    // Animation loop
+    // Animation loop using Babylon's onBeforeRenderObservable
     scene.onBeforeRenderObservable.add(() => {
         const delta = time.update().getDelta();
         entityManager.update(delta);
