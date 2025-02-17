@@ -1,0 +1,12 @@
+{
+    "name": "yuka-babylon-navigation",
+    "version": "1.0.0",
+    "description": "A navigation simulation using Yuka and Babylon.js",
+    "main": "app.js",
+    "scripts": {
+        "start": "npx http-server . -o"
+    },
+    "dependencies": {
+        "http-server": "^14.1.1"
+    }
+} 
