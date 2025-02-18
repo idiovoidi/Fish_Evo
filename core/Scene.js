@@ -9,6 +9,7 @@ class Scene {
         this.dayNightCycle = null;
         this.seaweedManager = null;
         this.coralManager = null;
+        this.debrisManager = null;
         
         // Handle window resize
         window.addEventListener('resize', () => {
@@ -77,6 +78,10 @@ class Scene {
             // Initialize coral after seaweed
             console.log("Creating coral reef");
             this.coralManager = new CoralManager(this.scene, this.landscape);
+
+            // Initialize ocean debris
+            console.log("Creating ocean debris");
+            this.debrisManager = new DebrisManager(this.scene, this.landscape);
 
             // Initialize entity handler
             console.log("Initializing entities");
