@@ -1,12 +1,23 @@
 {
-    "name": "yuka-babylon-navigation",
+    "name": "navigation-demo",
     "version": "1.0.0",
-    "description": "A navigation simulation using Yuka and Babylon.js",
-    "main": "app.js",
+    "description": "Navigation and AI demo using Babylon.js, Recast.js, and GOAP",
+    "main": "navmesh.js",
+    "type": "module",
     "scripts": {
-        "start": "npx http-server . -o"
+        "start": "http-server . -o",
+        "dev": "http-server . -o -c-1",
+        "postinstall": "npm run setup",
+        "setup": "mkdir -p public/lib && cp node_modules/@babylonjs/core/babylon.js public/lib/ && cp node_modules/@babylonjs/loaders/babylonjs.loaders.js public/lib/ && cp node_modules/recast-detour/dist/recast.js public/lib/"
     },
     "dependencies": {
-        "http-server": "^14.1.1"
+        "@babylonjs/core": "6.38.1",
+        "@babylonjs/loaders": "6.38.1",
+        "@babylonjs/materials": "6.38.1",
+        "recast-detour": "1.6.1",
+        "goap": "1.1.0"
+    },
+    "devDependencies": {
+        "http-server": "14.1.1"
     }
 } 
