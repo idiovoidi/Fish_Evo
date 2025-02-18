@@ -48,10 +48,12 @@ class UnderwaterLandscape {
                             const terrainMaterial = new BABYLON.StandardMaterial('terrainMaterial', this.scene);
                             terrainMaterial.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.5);
                             terrainMaterial.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+                            terrainMaterial.ambientColor = new BABYLON.Color3(0.3, 0.3, 0.2);
+                            terrainMaterial.emissiveColor = new BABYLON.Color3(0.1, 0.1, 0.05);
                             mesh.material = terrainMaterial;
                             mesh.position.y = -10;
 
-                            // Create water environment (semi-transparent box)
+                            // Create water environment with improved material
                             this.waterBox = BABYLON.MeshBuilder.CreateBox(
                                 'waterBox',
                                 { width: 100, height: 40, depth: 100 },
@@ -59,8 +61,13 @@ class UnderwaterLandscape {
                             );
                             const waterMaterial = new BABYLON.StandardMaterial('waterMaterial', this.scene);
                             waterMaterial.diffuseColor = new BABYLON.Color3(0.4, 0.6, 0.9);
+                            waterMaterial.specularColor = new BABYLON.Color3(0.3, 0.4, 0.5);
+                            waterMaterial.ambientColor = new BABYLON.Color3(0.2, 0.3, 0.4);
                             waterMaterial.alpha = 0.3;
-                            waterMaterial.backFaceCulling = false; // Show both sides of water
+                            waterMaterial.backFaceCulling = false;
+                            waterMaterial.useSpecularOverAlpha = true;
+                            waterMaterial.useReflectionOverAlpha = true;
+                            waterMaterial.useReflectionFresnelFromSpecular = true;
                             this.waterBox.material = waterMaterial;
                             this.waterBox.position.y = 10;
 
@@ -68,8 +75,10 @@ class UnderwaterLandscape {
                                 // Create navigation mesh
                                 await this.createNavigationMesh();
                                 
-                                // Debug visualization of navigation mesh
-                                this.debugDrawNavMesh();
+                                // Debug visualization of navigation mesh if enabled
+                                if (SimulationConfig.debug.showNavMesh) {
+                                    this.debugDrawNavMesh();
+                                }
 
                                 console.log("Landscape setup complete");
                                 resolve();

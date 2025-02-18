@@ -1,0 +1,455 @@
+// Day-Night Cycle class for managing time and lighting
+class DayNightCycle {
+    constructor(scene) {
+        this.scene = scene;
+        this.ORBIT_RADIUS = 1000;
+        this.ORBIT_HEIGHT_MAX = 800;
+        this.ORBIT_HEIGHT_MIN = -200;
+        this.SUNRISE_HOUR = 6;
+        this.SUNSET_HOUR = 18;
+        
+        // Time management
+        this.timeScale = 1200; // 1 real second = 20 game minutes
+        this.gameTime = 8 * 60; // Start at 8:00 AM
+        
+        this.createSkybox();
+        this.createLights();
+        this.createCelestialBodies();
+        this.createStars();
+        this.createAtmosphericEffects();
+        
+        // Initialize update loop
+        this.scene.onBeforeRenderObservable.add(() => {
+            const deltaTime = this.scene.getEngine().getDeltaTime() * 0.001;
+            this.updateTime(deltaTime);
+        });
+    }
+
+    updateTime(deltaTime) {
+        // Update game time
+        this.gameTime += deltaTime * this.timeScale / 60;
+        if (this.gameTime >= 24 * 60) {
+            this.gameTime = 0;
+        }
+        
+        // Update day/night cycle
+        this.update(this.gameTime);
+    }
+
+    // Get current game time in minutes
+    getGameTime() {
+        return this.gameTime;
+    }
+
+    // Get current hour (0-23)
+    getCurrentHour() {
+        return Math.floor(this.gameTime / 60);
+    }
+
+    // Set time scale (minutes per real second)
+    setTimeScale(scale) {
+        this.timeScale = scale;
+    }
+
+    // Set specific time (in minutes)
+    setTime(timeInMinutes) {
+        this.gameTime = timeInMinutes % (24 * 60);
+    }
+
+    createLights() {
+        // Main directional light (sun)
+        this.sunLight = new BABYLON.DirectionalLight("sunLight", new BABYLON.Vector3(0, -1, 0), this.scene);
+        this.sunLight.intensity = 0.8; // Reduced intensity for underwater effect
+        this.sunLight.shadowEnabled = true;
+        this.sunLight.shadowMinZ = 1;
+        this.sunLight.shadowMaxZ = 1000;
+
+        // Create shadow generator with high quality settings
+        this.shadowGenerator = new BABYLON.ShadowGenerator(2048, this.sunLight);
+        this.shadowGenerator.usePercentageCloserFiltering = true;
+        this.shadowGenerator.filteringQuality = BABYLON.ShadowGenerator.QUALITY_HIGH;
+        this.shadowGenerator.bias = 0.001;
+        this.shadowGenerator.darkness = 0.5; // Softer shadows underwater
+        
+        // Enable soft shadows with better quality
+        this.shadowGenerator.usePoissonSampling = true;
+        this.shadowGenerator.frustumEdgeFalloff = 0.2;
+
+        // Ambient light for underwater atmosphere
+        this.ambientLight = new BABYLON.HemisphericLight("ambientLight", new BABYLON.Vector3(0, 1, 0), this.scene);
+        this.ambientLight.intensity = 0.3;
+        this.ambientLight.groundColor = new BABYLON.Color3(0.05, 0.1, 0.15);
+        this.ambientLight.specular = new BABYLON.Color3(0.1, 0.1, 0.1);
+
+        // Add volumetric light with underwater settings
+        this.volumetricLight = new BABYLON.VolumetricLightScatteringPostProcess(
+            'volumetric', 1.0, this.scene.activeCamera, null, 50, 
+            BABYLON.Texture.BILINEAR_SAMPLINGMODE, this.scene.getEngine(), false
+        );
+        this.volumetricLight.exposure = 0.15;
+        this.volumetricLight.decay = 0.95;
+        this.volumetricLight.weight = 0.3;
+    }
+
+    // Add method to register meshes for shadows
+    addShadowCaster(mesh) {
+        if (this.shadowGenerator && mesh) {
+            this.shadowGenerator.addShadowCaster(mesh);
+            mesh.receiveShadows = true;
+        }
+    }
+
+    // Add method to register multiple meshes for shadows
+    addShadowCasters(meshes) {
+        meshes.forEach(mesh => this.addShadowCaster(mesh));
+    }
+
+    createSkybox() {
+        // Create skybox
+        this.skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 1000.0 }, this.scene);
+        this.skyboxMaterial = new BABYLON.StandardMaterial("skyBox", this.scene);
+        this.skyboxMaterial.backFaceCulling = false;
+        this.skyboxMaterial.disableLighting = true;
+        this.skybox.material = this.skyboxMaterial;
+
+        // Create sky gradient
+        const skyTexture = new BABYLON.DynamicTexture("skyTexture", {width: 512, height: 512}, this.scene);
+        this.skyboxMaterial.emissiveTexture = skyTexture;
+        this.skyTexture = skyTexture;
+    }
+
+    createCelestialBodies() {
+        // Create sun
+        this.sun = BABYLON.MeshBuilder.CreateDisc("sun", { radius: 50 }, this.scene);
+        const sunMaterial = new BABYLON.StandardMaterial("sunMaterial", this.scene);
+        sunMaterial.emissiveColor = new BABYLON.Color3(1, 0.8, 0.3);
+        sunMaterial.disableLighting = true;
+        this.sun.material = sunMaterial;
+        this.sun.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+
+        // Create sun glow
+        this.sunGlow = new BABYLON.GlowLayer("sunGlow", this.scene, {
+            mainTextureFixedSize: 512,
+            blurKernelSize: 64
+        });
+        this.sunGlow.intensity = 0.5;
+        this.sunGlow.addIncludedOnlyMesh(this.sun);
+
+        // Create moon
+        this.moon = BABYLON.MeshBuilder.CreateDisc("moon", { radius: 30 }, this.scene);
+        const moonMaterial = new BABYLON.StandardMaterial("moonMaterial", this.scene);
+        moonMaterial.emissiveColor = new BABYLON.Color3(0.8, 0.8, 0.9);
+        moonMaterial.disableLighting = true;
+        this.moon.material = moonMaterial;
+        this.moon.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL;
+
+        // Create moon glow
+        this.moonGlow = new BABYLON.GlowLayer("moonGlow", this.scene, {
+            mainTextureFixedSize: 512,
+            blurKernelSize: 64
+        });
+        this.moonGlow.intensity = 0.3;
+        this.moonGlow.addIncludedOnlyMesh(this.moon);
+    }
+
+    createStars() {
+        // Create stars with different sizes and colors
+        this.stars = [];
+        const starColors = [
+            new BABYLON.Color3(1, 1, 1),    // White
+            new BABYLON.Color3(0.9, 0.9, 1), // Bluish white
+            new BABYLON.Color3(1, 0.9, 0.7), // Yellowish
+            new BABYLON.Color3(1, 0.8, 0.8)  // Reddish
+        ];
+
+        for (let i = 0; i < 1000; i++) {
+            const starSize = 0.2 + Math.random() * 0.6; // Varying sizes
+            const star = BABYLON.MeshBuilder.CreateBox("star", { size: starSize }, this.scene);
+            
+            // Create more realistic star distribution
+            const phi = Math.random() * Math.PI * 2;
+            const theta = Math.acos(2 * Math.random() - 1);
+            const radius = 400 + Math.random() * 200;
+            
+            star.position = new BABYLON.Vector3(
+                radius * Math.sin(theta) * Math.cos(phi),
+                radius * Math.sin(theta) * Math.sin(phi),
+                radius * Math.cos(theta)
+            );
+
+            const starMaterial = new BABYLON.StandardMaterial("starMat", this.scene);
+            starMaterial.emissiveColor = starColors[Math.floor(Math.random() * starColors.length)];
+            starMaterial.alpha = 0;
+            star.material = starMaterial;
+            
+            // Add subtle twinkling effect
+            star.twinkleSpeed = 0.5 + Math.random() * 2;
+            star.twinkleAmount = 0.3 + Math.random() * 0.7;
+            
+            this.stars.push(star);
+        }
+    }
+
+    createAtmosphericEffects() {
+        // Create fog
+        this.scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
+        this.scene.fogDensity = 0.001;
+        this.scene.fogColor = new BABYLON.Color3(0.8, 0.9, 1.0);
+    }
+
+    update(gameTime) {
+        const hours = gameTime / 60;
+        const dayProgress = (hours % 24) / 24;
+        
+        // Calculate sun and moon positions
+        this.updateCelestialPositions(hours);
+        
+        // Update lighting based on time of day
+        this.updateLighting(hours);
+        
+        // Update sky colors
+        this.updateSkyColors(hours);
+        
+        // Update atmospheric effects
+        this.updateAtmosphericEffects(hours);
+    }
+
+    updateCelestialPositions(hours) {
+        // Calculate sun position
+        const sunAngle = ((hours - this.SUNRISE_HOUR) / 24) * Math.PI * 2;
+        const sunHeight = this.calculateCelestialHeight(hours, this.SUNRISE_HOUR, this.SUNSET_HOUR);
+        
+        this.sun.position = new BABYLON.Vector3(
+            Math.cos(sunAngle) * this.ORBIT_RADIUS,
+            sunHeight,
+            Math.sin(sunAngle) * this.ORBIT_RADIUS
+        );
+
+        // Calculate moon position (opposite to sun)
+        const moonAngle = sunAngle + Math.PI;
+        const moonHeight = this.calculateCelestialHeight(hours, this.SUNSET_HOUR, this.SUNRISE_HOUR + 24);
+        
+        this.moon.position = new BABYLON.Vector3(
+            Math.cos(moonAngle) * this.ORBIT_RADIUS,
+            moonHeight,
+            Math.sin(moonAngle) * this.ORBIT_RADIUS
+        );
+
+        // Update directional light to match sun position and adjust shadow properties
+        this.sunLight.direction = this.sun.position.scale(-1).normalize();
+        
+        // Adjust shadow darkness based on time of day
+        const isNight = sunHeight < 0;
+        const twilightZone = Math.abs(sunHeight) < 100;
+        
+        if (isNight) {
+            this.shadowGenerator.darkness = 0.7;
+            this.shadowGenerator.bias = 0.002; // Increase bias at night to reduce shadow artifacts
+        } else if (twilightZone) {
+            this.shadowGenerator.darkness = 0.5;
+            this.shadowGenerator.bias = 0.001;
+        } else {
+            this.shadowGenerator.darkness = 0.3;
+            this.shadowGenerator.bias = 0.0005;
+        }
+
+        // Adjust shadow blur based on sun height for softer shadows during twilight
+        const normalizedHeight = (sunHeight - this.ORBIT_HEIGHT_MIN) / 
+                               (this.ORBIT_HEIGHT_MAX - this.ORBIT_HEIGHT_MIN);
+        this.shadowGenerator.blurScale = twilightZone ? 4 : 2;
+        this.shadowGenerator.blurBoxOffset = twilightZone ? 2 : 1;
+    }
+
+    calculateCelestialHeight(currentHour, riseHour, setHour) {
+        let hour = currentHour % 24;
+        let transitHour = (riseHour + ((setHour - riseHour) / 2)) % 24;
+        let adjustedSetHour = setHour;
+        
+        // Normalize hours to handle day/night cycle
+        if (hour < riseHour) hour += 24;
+        if (transitHour < riseHour) transitHour += 24;
+        if (adjustedSetHour < riseHour) adjustedSetHour += 24;
+
+        // Calculate progress through celestial arc
+        if (hour >= riseHour && hour <= adjustedSetHour) {
+            const progress = (hour - riseHour) / (adjustedSetHour - riseHour);
+            // Use sine curve for smooth movement
+            return this.ORBIT_HEIGHT_MIN + (this.ORBIT_HEIGHT_MAX - this.ORBIT_HEIGHT_MIN) * 
+                   Math.sin(progress * Math.PI);
+        }
+        
+        return this.ORBIT_HEIGHT_MIN;
+    }
+
+    updateLighting(hours) {
+        const sunHeight = this.sun.position.y;
+        const normalizedHeight = (sunHeight - this.ORBIT_HEIGHT_MIN) / 
+                               (this.ORBIT_HEIGHT_MAX - this.ORBIT_HEIGHT_MIN);
+        
+        // Update sun light intensity with smoother transition and underwater attenuation
+        const baseSunIntensity = Math.max(0, normalizedHeight) * 0.8; // Reduced maximum intensity
+        this.sunLight.intensity = baseSunIntensity * 0.5; // Further reduction for underwater
+
+        // Update sun color based on height with underwater color shift
+        const sunsetProgress = Math.max(0, Math.min(1, 1 - Math.abs(normalizedHeight)));
+        this.sunLight.diffuse = BABYLON.Color3.Lerp(
+            new BABYLON.Color3(0.4, 0.6, 0.8),  // Midday color (bluish)
+            new BABYLON.Color3(0.6, 0.3, 0.2),  // Sunset color (muted orange)
+            sunsetProgress
+        );
+
+        // Update ambient light for night/day cycle
+        const isNight = sunHeight < 0;
+        const twilightZone = Math.abs(sunHeight) < 100;
+        
+        if (isNight) {
+            // Night settings
+            this.ambientLight.intensity = twilightZone ? 0.15 : 0.1;
+            this.ambientLight.diffuse = new BABYLON.Color3(0.05, 0.1, 0.15);
+            this.moonGlow.intensity = 0.2;
+            this.sunGlow.intensity = 0;
+            
+            // Add stars
+            this.stars.forEach(star => {
+                if (star.material) {
+                    star.material.alpha = Math.min(1, Math.abs(sunHeight) / 100);
+                }
+            });
+        } else {
+            // Day settings
+            this.ambientLight.intensity = twilightZone ? 0.2 : 0.3;
+            this.ambientLight.diffuse = new BABYLON.Color3(0.2, 0.4, 0.5);
+            this.moonGlow.intensity = 0;
+            this.sunGlow.intensity = 0.3;
+            
+            // Hide stars during day
+            this.stars.forEach(star => {
+                if (star.material) {
+                    star.material.alpha = Math.max(0, 1 - (sunHeight / 50));
+                }
+            });
+        }
+
+        // Update volumetric light settings
+        if (this.volumetricLight) {
+            this.volumetricLight.exposure = isNight ? 0.1 : 0.15;
+            this.volumetricLight.decay = isNight ? 0.97 : 0.95;
+            this.volumetricLight.weight = twilightZone ? 0.2 : 0.15;
+        }
+
+        // Update star visibility and twinkling
+        const starVisibility = Math.max(0, Math.min(1, (100 - sunHeight) / 200));
+        this.stars.forEach(star => {
+            if (star.material) {
+                const time = performance.now() * 0.001;
+                const twinkle = Math.sin(time * star.twinkleSpeed) * star.twinkleAmount;
+                star.material.alpha = starVisibility * (0.7 + twinkle * 0.3);
+                star.material.emissiveColor = star.material.diffuseColor.scale(0.8 + twinkle * 0.2);
+            }
+        });
+    }
+
+    updateSkyColors(hours) {
+        const ctx = this.skyTexture.getContext();
+        const grd = ctx.createLinearGradient(0, 0, 0, 512);
+
+        const sunHeight = this.sun.position.y;
+        const isSunrise = hours >= this.SUNRISE_HOUR - 1 && hours <= this.SUNRISE_HOUR + 1;
+        const isSunset = hours >= this.SUNSET_HOUR - 1 && hours <= this.SUNSET_HOUR + 1;
+        
+        if (sunHeight > 0) {
+            if (isSunrise || isSunset) {
+                // Dawn/Dusk colors with more dramatic gradient
+                grd.addColorStop(0, "#FF6B4A");    // Deep orange
+                grd.addColorStop(0.2, "#FF9E8F");  // Soft pink
+                grd.addColorStop(0.4, "#FFB6C1");  // Light pink
+                grd.addColorStop(0.6, "#87CEEB");  // Sky blue
+                grd.addColorStop(0.8, "#4169E1");  // Royal blue
+                grd.addColorStop(1, "#191970");    // Midnight blue
+            } else {
+                // Daytime colors with more depth
+                grd.addColorStop(0, "#00BFFF");    // Deep sky blue
+                grd.addColorStop(0.5, "#87CEEB");  // Sky blue
+                grd.addColorStop(1, "#E0FFFF");    // Light cyan
+            }
+        } else {
+            // Nighttime colors with more stars visible
+            grd.addColorStop(0, "#000033");    // Dark blue
+            grd.addColorStop(0.5, "#0000FF");  // Deep blue
+            grd.addColorStop(1, "#191970");    // Midnight blue
+        }
+
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, 512, 512);
+        this.skyTexture.update();
+    }
+
+    updateAtmosphericEffects(hours) {
+        const sunHeight = this.sun.position.y;
+        const normalizedHeight = (sunHeight - this.ORBIT_HEIGHT_MIN) / 
+                               (this.ORBIT_HEIGHT_MAX - this.ORBIT_HEIGHT_MIN);
+        
+        // Update fog based on time of day
+        const isSunrise = hours >= this.SUNRISE_HOUR - 1 && hours <= this.SUNRISE_HOUR + 1;
+        const isSunset = hours >= this.SUNSET_HOUR - 1 && hours <= this.SUNSET_HOUR + 1;
+        const isNight = sunHeight < 0;
+
+        if (isSunrise || isSunset) {
+            // Thicker, colored fog during sunrise/sunset
+            this.scene.fogDensity = 0.005;
+            this.scene.fogColor = new BABYLON.Color3(0.9, 0.6, 0.4);
+        } else if (isNight) {
+            // Darker, thicker fog at night
+            this.scene.fogDensity = 0.003;
+            this.scene.fogColor = new BABYLON.Color3(0.05, 0.05, 0.15);
+        } else {
+            // Clear fog during day
+            this.scene.fogDensity = 0.001;
+            this.scene.fogColor = new BABYLON.Color3(0.7, 0.8, 1.0);
+        }
+
+        // Update volumetric light
+        if (this.volumetricLight) {
+            this.volumetricLight.exposure = isNight ? 0.1 : 0.8;
+            this.volumetricLight.decay = isNight ? 0.9 : 0.95;
+            this.volumetricLight.weight = isSunrise || isSunset ? 0.5 : 0.3;
+        }
+
+        // Update star visibility and twinkling
+        const starVisibility = Math.max(0, Math.min(1, (100 - sunHeight) / 200));
+        this.stars.forEach(star => {
+            if (star.material) {
+                const time = performance.now() * 0.001;
+                const twinkle = Math.sin(time * star.twinkleSpeed) * star.twinkleAmount;
+                star.material.alpha = starVisibility * (0.7 + twinkle * 0.3);
+                star.material.emissiveColor = star.material.diffuseColor.scale(0.8 + twinkle * 0.2);
+            }
+        });
+    }
+
+    dispose() {
+        this.sunLight.dispose();
+        this.ambientLight.dispose();
+        this.skybox.dispose();
+        this.skyboxMaterial.dispose();
+        this.skyTexture.dispose();
+        this.sun.dispose();
+        this.moon.dispose();
+        this.sunGlow.dispose();
+        this.moonGlow.dispose();
+        this.stars.forEach(star => star.dispose());
+        if (this.volumetricLight) {
+            this.volumetricLight.dispose();
+        }
+        if (this.shadowGenerator) {
+            this.shadowGenerator.dispose();
+        }
+    }
+}
+
+// Export the class
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = DayNightCycle;
+} else if (typeof window !== 'undefined') {
+    window.DayNightCycle = DayNightCycle;
+} 
