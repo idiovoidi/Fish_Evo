@@ -21,6 +21,12 @@ class Scene {
             this.scene.clearColor = new BABYLON.Color4(0.1, 0.2, 0.3, 1);
             this.scene.ambientColor = new BABYLON.Color3(0.3, 0.3, 0.3);
             
+            // Enable debug layer
+            this.scene.debugLayer.show({
+                embedMode: true,
+                overlay: true
+            });
+            
             // Add basic lighting
             const light = new BABYLON.HemisphericLight(
                 'mainLight',
