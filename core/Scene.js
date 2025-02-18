@@ -7,6 +7,8 @@ class Scene {
         this.landscape = null;
         this.entityHandler = null;
         this.dayNightCycle = null;
+        this.seaweedManager = null;
+        this.coralManager = null;
         
         // Handle window resize
         window.addEventListener('resize', () => {
@@ -67,6 +69,14 @@ class Scene {
                 this.dayNightCycle.addShadowCaster(this.landscape.terrain);
             }
             console.log("Landscape setup complete");
+
+            // Initialize seaweed after landscape
+            console.log("Creating seaweed");
+            this.seaweedManager = new SeaweedManager(this.scene, this.landscape);
+
+            // Initialize coral after seaweed
+            console.log("Creating coral reef");
+            this.coralManager = new CoralManager(this.scene, this.landscape);
 
             // Initialize entity handler
             console.log("Initializing entities");
