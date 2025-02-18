@@ -151,18 +151,24 @@ class UnderwaterLandscape {
                 return;
             }
 
-            // Get debug data directly from the navigation plugin
-            const navmeshData = this.navigationPlugin.getDebugData();
-            if (!navmeshData) {
-                console.warn("No debug data available for navigation mesh");
-                return;
-            }
-
             // Create debug visualization mesh
             const debugMesh = new BABYLON.Mesh('navmeshDebug', this.scene);
             
-            // Apply the debug data directly to the mesh
-            navmeshData.applyToMesh(debugMesh);
+            // Get navigation mesh data
+            const navmeshVertexData = new BABYLON.VertexData();
+            const navmeshData = this.navigationPlugin.getNavMeshData();
+            
+            if (!navmeshData) {
+                console.warn("No navigation mesh data available");
+                return;
+            }
+
+            // Set vertex data
+            navmeshVertexData.positions = navmeshData.positions;
+            navmeshVertexData.indices = navmeshData.indices;
+            
+            // Apply to debug mesh
+            navmeshVertexData.applyToMesh(debugMesh);
             
             // Create debug material
             const debugMaterial = new BABYLON.StandardMaterial('navmeshDebugMat', this.scene);

@@ -10,6 +10,7 @@ class Scene {
         this.seaweedManager = null;
         this.coralManager = null;
         this.debrisManager = null;
+        this.sharkManager = null;
         
         // Handle window resize
         window.addEventListener('resize', () => {
@@ -83,6 +84,10 @@ class Scene {
             console.log("Creating ocean debris");
             this.debrisManager = new DebrisManager(this.scene, this.landscape);
 
+            // Initialize shark
+            console.log("Creating shark");
+            this.sharkManager = new SharkManager(this.scene);
+
             // Initialize entity handler
             console.log("Initializing entities");
             this.entityHandler = new EntityHandler(this.scene, this.landscape);
@@ -96,6 +101,16 @@ class Scene {
                     }
                 });
             }
+
+            // Register shark for shadows
+            if (this.sharkManager) {
+                this.sharkManager.sharks.forEach(shark => {
+                    if (shark.mesh) {
+                        this.dayNightCycle.addShadowCaster(shark.mesh);
+                    }
+                });
+            }
+
             console.log("Entity initialization complete");
 
             // Enhanced water material adjustments based on time of day
@@ -122,6 +137,7 @@ class Scene {
             // Setup animation loop
             this.scene.onBeforeRenderObservable.add(() => {
                 if (this.entityHandler) this.entityHandler.update();
+                if (this.sharkManager) this.sharkManager.update();
             });
 
             console.log("Scene initialization complete");
