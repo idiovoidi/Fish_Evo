@@ -2,19 +2,31 @@
 class Crab extends YUKA.Vehicle {
     constructor(navigationPlugin, landscape) {
         super();
-        this.maxSpeed = 2;
-        this.maxForce = 0.5;
+        this.maxSpeed = SimulationConfig.entities.crabs.maxSpeed;
+        this.maxForce = SimulationConfig.entities.crabs.maxForce;
         this.updateNeighborhood = true;
-        this.neighborhoodRadius = 5;
+        this.neighborhoodRadius = SimulationConfig.entities.crabs.neighborhoodRadius;
         this.currentPath = null;
         this.pathIndex = 0;
         this.navigationPlugin = navigationPlugin;
         this.landscape = landscape;
         this.waitTime = 0;
-        this.waitDuration = 3 + Math.random() * 2; // Random wait time between 3-5 seconds
+        this.waitDuration = SimulationConfig.entities.crabs.waitDurationRange.min + 
+            Math.random() * (SimulationConfig.entities.crabs.waitDurationRange.max - SimulationConfig.entities.crabs.waitDurationRange.min);
+        
+        // Physics properties
+        this.velocity = new YUKA.Vector3();
+        this.acceleration = new YUKA.Vector3();
+        this.gravity = -9.81;
+        this.isGrounded = false;
+        this.groundCheckDistance = 0.1;
+        this.jumpForce = 5;
     }
 
     update(delta) {
+        // Apply physics
+        this.applyPhysics(delta);
+
         if (this.waitTime > 0) {
             this.waitTime -= delta;
             if (this.waitTime <= 0) {
@@ -23,14 +35,13 @@ class Crab extends YUKA.Vehicle {
             return super.update(delta);
         }
 
-        if (this.currentPath && this.currentPath.length > 0) {
+        if (this.currentPath && this.currentPath.length > 0 && this.isGrounded) {
             const target = this.currentPath[this.pathIndex];
             const distance = this.position.distanceTo(target);
 
             if (distance < 0.5) {
                 this.pathIndex++;
                 if (this.pathIndex >= this.currentPath.length) {
-                    // Path completed, wait before new destination
                     this.waitTime = this.waitDuration;
                     this.steering.clear();
                 }
@@ -38,41 +49,122 @@ class Crab extends YUKA.Vehicle {
                 // Update steering to follow current path point
                 this.steering.clear();
                 const seekBehavior = new YUKA.SeekBehavior(target);
+                seekBehavior.weight = 1;
                 this.steering.add(seekBehavior);
+
+                // Add obstacle avoidance if needed
+                if (this.checkForObstacles()) {
+                    const avoidanceBehavior = new YUKA.ObstacleAvoidanceBehavior();
+                    avoidanceBehavior.weight = 2;
+                    this.steering.add(avoidanceBehavior);
+                }
             }
         }
-
-        // Ensure crab stays on terrain
-        const groundY = this.landscape.getHeightAtPoint(this.position.x, this.position.z);
-        this.position.y = groundY + 0.5; // Offset to keep crab above ground
 
         return super.update(delta);
     }
 
-    setNewRandomDestination() {
-        const destination = this.landscape.getRandomNavigablePosition();
+    applyPhysics(delta) {
+        // Apply gravity
+        this.acceleration.y += this.gravity * delta;
+
+        // Update velocity
+        this.velocity.add(this.acceleration.multiplyScalar(delta));
+
+        // Check ground collision
+        const groundY = this.landscape.getHeightAtPoint(this.position.x, this.position.z);
+        const heightAboveGround = this.position.y - groundY;
+
+        if (heightAboveGround <= SimulationConfig.entities.crabs.spawnHeight + this.groundCheckDistance) {
+            // Ground collision
+            this.position.y = groundY + SimulationConfig.entities.crabs.spawnHeight;
+            this.velocity.y = 0;
+            this.acceleration.y = 0;
+            this.isGrounded = true;
+        } else {
+            this.isGrounded = false;
+        }
+
+        // Apply velocity to position
+        this.position.add(this.velocity.multiplyScalar(delta));
+
+        // Reset acceleration
+        this.acceleration.set(0, 0, 0);
+    }
+
+    checkForObstacles() {
+        // Implement obstacle detection using raycasts
+        const forward = new BABYLON.Vector3(
+            Math.sin(this.rotation.y),
+            0,
+            Math.cos(this.rotation.y)
+        );
         
-        if (!destination) {
-            console.warn('Could not find valid destination for crab');
+        const ray = new BABYLON.Ray(
+            new BABYLON.Vector3(this.position.x, this.position.y, this.position.z),
+            forward,
+            2 // Detection range
+        );
+
+        const hit = this.landscape.scene.pickWithRay(ray);
+        return hit && hit.hit;
+    }
+
+    setNewRandomDestination() {
+        if (!this.isGrounded) {
+            this.waitTime = 0.5; // Wait until grounded
             return;
         }
 
-        const startPos = new BABYLON.Vector3(this.position.x, this.position.y, this.position.z);
-        const endPos = destination;
-        
-        const path = this.navigationPlugin.computePath(startPos, endPos);
-        
-        if (path && path.length > 0) {
-            this.currentPath = path.map(p => new YUKA.Vector3(p.x, p.y, p.z));
-            this.pathIndex = 0;
+        try {
+            const destination = this.landscape.getRandomNavigablePosition();
             
-            // Set seek behavior to first point
-            this.steering.clear();
-            const seekBehavior = new YUKA.SeekBehavior(this.currentPath[0]);
-            seekBehavior.weight = 1;
-            this.steering.add(seekBehavior);
-        } else {
-            // If no path found, try again after a short delay
+            if (!destination) {
+                console.warn('Could not find valid destination for crab');
+                this.waitTime = 1;
+                return;
+            }
+
+            const startPos = new BABYLON.Vector3(
+                this.position.x,
+                this.position.y,
+                this.position.z
+            );
+            
+            // Ensure destination is above terrain
+            const groundY = this.landscape.getHeightAtPoint(destination.x, destination.z);
+            destination.y = groundY + SimulationConfig.entities.crabs.spawnHeight;
+
+            // Compute path using navigation plugin
+            const path = this.navigationPlugin.computePath(startPos, destination);
+            
+            if (path && path.length > 0) {
+                // Convert path points to Yuka vectors and ensure they're above terrain
+                this.currentPath = path.map(p => {
+                    const groundY = this.landscape.getHeightAtPoint(p.x, p.z);
+                    return new YUKA.Vector3(
+                        p.x,
+                        groundY + SimulationConfig.entities.crabs.spawnHeight,
+                        p.z
+                    );
+                });
+                this.pathIndex = 0;
+                
+                // Set seek behavior to first point
+                this.steering.clear();
+                const seekBehavior = new YUKA.SeekBehavior(this.currentPath[0]);
+                seekBehavior.weight = 1;
+                this.steering.add(seekBehavior);
+
+                if (SimulationConfig.debug.logSpawnPositions) {
+                    console.log(`Crab path set from (${startPos.x.toFixed(2)}, ${startPos.y.toFixed(2)}, ${startPos.z.toFixed(2)}) to (${destination.x.toFixed(2)}, ${destination.y.toFixed(2)}, ${destination.z.toFixed(2)})`);
+                }
+            } else {
+                console.warn('No valid path found for crab');
+                this.waitTime = 1;
+            }
+        } catch (error) {
+            console.error('Error setting new destination for crab:', error);
             this.waitTime = 1;
         }
     }
@@ -140,26 +232,113 @@ class CrabManager {
         this.crabs = [];
     }
 
-    createCrabs(numCrabs = 10) {
+    createCrabs(numCrabs = SimulationConfig.entities.crabs.count) {
+        const SPAWN_AREA_SIZE = 50; // Size of the spawn area
+        const SPAWN_GRID_SIZE = Math.ceil(Math.sqrt(numCrabs));
+        const CELL_SIZE = SPAWN_AREA_SIZE / SPAWN_GRID_SIZE;
+
         for (let i = 0; i < numCrabs; i++) {
-            const crab = new Crab(this.navigationPlugin, this.landscape);
-            
-            // Get random navigable spawn position
-            const spawnPos = this.landscape.getRandomNavigablePosition();
-            crab.position.set(spawnPos.x, spawnPos.y + 0.5, spawnPos.z);
-            crab.rotation.fromEuler(0, Math.random() * Math.PI * 2, 0);
+            try {
+                const crab = new Crab(this.navigationPlugin, this.landscape);
+                
+                // Try multiple positions until we find a valid one
+                let validPosition = false;
+                let attempts = 0;
+                let spawnPos;
 
-            const crabMesh = CrabMeshCreator.createMesh(this.scene);
-            crabMesh.bakeCurrentTransformIntoVertices();
-            crabMesh.freezeWorldMatrix();
+                while (!validPosition && attempts < 10) {
+                    // Calculate base grid position
+                    const row = Math.floor(i / SPAWN_GRID_SIZE);
+                    const col = i % SPAWN_GRID_SIZE;
+                    
+                    // Calculate position with random offset within cell
+                    const baseX = (col * CELL_SIZE) - (SPAWN_AREA_SIZE / 2) + (CELL_SIZE / 2);
+                    const baseZ = (row * CELL_SIZE) - (SPAWN_AREA_SIZE / 2) + (CELL_SIZE / 2);
+                    
+                    // Add random offset within cell
+                    const x = baseX + (Math.random() - 0.5) * (CELL_SIZE * 0.8);
+                    const z = baseZ + (Math.random() - 0.5) * (CELL_SIZE * 0.8);
+                    
+                    // Get height at this position
+                    const groundY = this.landscape.getHeightAtPoint(x, z);
+                    
+                    spawnPos = new BABYLON.Vector3(
+                        x,
+                        groundY + SimulationConfig.entities.crabs.spawnHeight + 2, // Start higher for physics
+                        z
+                    );
 
-            crab.setRenderComponent(crabMesh, (entity, renderComponent) => {
-                BABYLON.Matrix.FromValues(...entity.worldMatrix.elements).decomposeToTransformNode(renderComponent);
-            });
+                    // Validate position
+                    if (this.isValidSpawnPosition(spawnPos)) {
+                        validPosition = true;
+                    }
+                    
+                    attempts++;
+                }
 
-            crab.setNewRandomDestination();
-            this.entityManager.add(crab);
-            this.crabs.push(crab);
+                if (!validPosition) {
+                    console.warn(`Could not find valid spawn position for crab ${i} after ${attempts} attempts`);
+                    continue;
+                }
+
+                // Initialize crab at valid position
+                crab.position.set(spawnPos.x, spawnPos.y, spawnPos.z);
+                crab.rotation.fromEuler(0, Math.random() * Math.PI * 2, 0);
+                crab.velocity = new YUKA.Vector3(0, 0, 0);
+                crab.isGrounded = false;
+
+                const crabMesh = CrabMeshCreator.createMesh(this.scene);
+                crabMesh.position.set(spawnPos.x, spawnPos.y, spawnPos.z);
+
+                crab.setRenderComponent(crabMesh, (entity, renderComponent) => {
+                    BABYLON.Matrix.FromValues(...entity.worldMatrix.elements).decomposeToTransformNode(renderComponent);
+                });
+
+                this.entityManager.add(crab);
+                this.crabs.push(crab);
+
+                if (SimulationConfig.debug.logSpawnPositions) {
+                    console.log(`Spawned crab at (${spawnPos.x.toFixed(2)}, ${spawnPos.y.toFixed(2)}, ${spawnPos.z.toFixed(2)})`);
+                }
+            } catch (error) {
+                console.error('Error creating crab:', error);
+            }
+        }
+    }
+
+    isValidSpawnPosition(position) {
+        try {
+            // Check if position is within bounds
+            if (Math.abs(position.x) > 100 || Math.abs(position.z) > 100) {
+                return false;
+            }
+
+            // Check if position is navigable
+            const navPoint = this.navigationPlugin.getClosestPoint(position);
+            if (!navPoint) {
+                return false;
+            }
+
+            // Check distance to other crabs
+            const MIN_DISTANCE = 2;
+            for (const existingCrab of this.crabs) {
+                const distance = BABYLON.Vector3.Distance(
+                    position,
+                    new BABYLON.Vector3(
+                        existingCrab.position.x,
+                        existingCrab.position.y,
+                        existingCrab.position.z
+                    )
+                );
+                if (distance < MIN_DISTANCE) {
+                    return false;
+                }
+            }
+
+            return true;
+        } catch (error) {
+            console.warn('Error checking spawn position validity:', error);
+            return false;
         }
     }
 

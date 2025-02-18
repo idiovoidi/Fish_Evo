@@ -5,8 +5,7 @@ class Scene {
         this.scene = new BABYLON.Scene(this.engine);
         this.camera = null;
         this.landscape = null;
-        this.crabManager = null;
-        this.fishManager = null;
+        this.entityHandler = null;
         
         // Handle window resize
         window.addEventListener('resize', () => {
@@ -54,26 +53,15 @@ class Scene {
             await this.landscape.setup();
             console.log("Landscape setup complete");
 
-            // Create crab manager and initialize crabs
-            console.log("Creating crabs");
-            this.crabManager = new CrabManager(
-                this.scene, 
-                this.landscape.getNavigationPlugin(), 
-                this.landscape
-            );
-            this.crabManager.createCrabs(10);
-            console.log("Crabs created");
-
-            // Create fish manager and initialize fish
-            console.log("Creating fish");
-            this.fishManager = new FishManager(this.scene);
-            this.fishManager.createFishSchool(50);
-            console.log("Fish created");
+            // Initialize entity handler
+            console.log("Initializing entities");
+            this.entityHandler = new EntityHandler(this.scene, this.landscape);
+            await this.entityHandler.initialize();
+            console.log("Entity initialization complete");
 
             // Setup animation loop
             this.scene.onBeforeRenderObservable.add(() => {
-                if (this.crabManager) this.crabManager.update();
-                if (this.fishManager) this.fishManager.update();
+                if (this.entityHandler) this.entityHandler.update();
             });
 
             console.log("Scene initialization complete");

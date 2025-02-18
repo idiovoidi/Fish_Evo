@@ -108,21 +108,51 @@ class UnderwaterLandscape {
 
     debugDrawNavMesh() {
         try {
-            const navmeshVertexData = this.navigationPlugin.getDebugData();
-            if (!navmeshVertexData) {
-                console.warn("No debug data available for navigation mesh");
+            if (!this.navigationPlugin || !this.navigationPlugin.navMesh) {
+                console.warn("No navigation mesh available for visualization");
                 return;
             }
 
-            const navmeshMesh = new BABYLON.Mesh('navmesh', this.scene);
-            navmeshVertexData.applyToMesh(navmeshMesh);
+            // Create debug visualization mesh
+            const debugMesh = new BABYLON.Mesh('navmeshDebug', this.scene);
+            const vertexData = new BABYLON.VertexData();
             
-            const navmeshMaterial = new BABYLON.StandardMaterial('navmeshMat', this.scene);
-            navmeshMaterial.diffuseColor = new BABYLON.Color3(0.5, 1, 0.5);
-            navmeshMaterial.alpha = 0.3;
-            navmeshMaterial.wireframe = true;
-            navmeshMesh.material = navmeshMaterial;
-            navmeshMesh.position.y += 0.1; // Slight offset to prevent z-fighting
+            // Get navigation mesh data
+            const triangleCount = this.navigationPlugin.navMesh.getTriangleCount();
+            const positions = [];
+            const indices = [];
+            
+            // Build mesh data from navigation triangles
+            for (let i = 0; i < triangleCount; i++) {
+                const triangle = this.navigationPlugin.navMesh.getTriangle(i);
+                const verts = triangle.getVertices();
+                
+                // Add vertices
+                positions.push(
+                    verts[0].x, verts[0].y, verts[0].z,
+                    verts[1].x, verts[1].y, verts[1].z,
+                    verts[2].x, verts[2].y, verts[2].z
+                );
+                
+                // Add indices
+                const baseIndex = i * 3;
+                indices.push(baseIndex, baseIndex + 1, baseIndex + 2);
+            }
+            
+            // Apply vertex data
+            vertexData.positions = positions;
+            vertexData.indices = indices;
+            vertexData.applyToMesh(debugMesh);
+            
+            // Create debug material
+            const debugMaterial = new BABYLON.StandardMaterial('navmeshDebugMat', this.scene);
+            debugMaterial.diffuseColor = new BABYLON.Color3(0, 1, 0);
+            debugMaterial.alpha = 0.3;
+            debugMaterial.wireframe = true;
+            debugMesh.material = debugMaterial;
+            
+            // Raise slightly above terrain to prevent z-fighting
+            debugMesh.position.y += 0.1;
 
             console.log("Navigation mesh visualization created");
         } catch (error) {
