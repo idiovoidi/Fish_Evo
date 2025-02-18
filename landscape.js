@@ -92,10 +92,16 @@ class UnderwaterLandscape {
         try {
             // Create a temporary collision mesh for navigation
             const navmeshGround = this.terrain.clone("navmeshGround");
-            navmeshGround.position = this.terrain.position;
-            navmeshGround.scaling = this.terrain.scaling;
-            navmeshGround.rotation = this.terrain.rotation;
+            
+            // Important: Match the exact position and transform of the terrain
+            navmeshGround.position = this.terrain.position.clone();
+            navmeshGround.scaling = this.terrain.scaling.clone();
+            navmeshGround.rotation = this.terrain.rotation.clone();
             navmeshGround.computeWorldMatrix(true);
+            
+            // Make the navigation mesh invisible and disable rendering
+            navmeshGround.isVisible = false;
+            navmeshGround.isPickable = false;
 
             // Create navigation mesh with adjusted parameters
             const navmeshParams = {
@@ -120,7 +126,8 @@ class UnderwaterLandscape {
             // Build debug data
             this.navigationPlugin.createDebugNavMesh();
             
-            navmeshGround.dispose(); // Clean up temporary mesh
+            // Ensure proper cleanup
+            navmeshGround.dispose();
             console.log("Navigation mesh created successfully");
         } catch (error) {
             console.error("Failed to create navigation mesh:", error);
@@ -155,8 +162,11 @@ class UnderwaterLandscape {
             debugMaterial.wireframe = true;
             debugMesh.material = debugMaterial;
             
-            // Raise slightly above terrain to prevent z-fighting
-            debugMesh.position.y += 0.1;
+            // Match the terrain's position
+            debugMesh.position.y = this.terrain.position.y + 0.1;
+
+            // Ensure the debug mesh is rendered above other meshes
+            debugMesh.renderingGroupId = 1;
 
             console.log("Navigation mesh visualization created");
         } catch (error) {
@@ -178,7 +188,7 @@ class UnderwaterLandscape {
 
     // Get height at specific point on terrain
     getHeightAtPoint(x, z) {
-        if (!this.terrain) return -10;
+        if (!this.terrain) return this.terrain.position.y;
         
         const ray = new BABYLON.Ray(
             new BABYLON.Vector3(x, 100, z),
@@ -186,7 +196,7 @@ class UnderwaterLandscape {
             200
         );
         const pick = this.scene.pickWithRay(ray, mesh => mesh === this.terrain);
-        return pick?.pickedPoint?.y || -10;
+        return pick?.pickedPoint?.y || this.terrain.position.y;
     }
 
     // Get nearest navigable point
