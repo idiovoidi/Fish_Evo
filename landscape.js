@@ -97,9 +97,31 @@ class UnderwaterLandscape {
             navmeshGround.rotation = this.terrain.rotation;
             navmeshGround.computeWorldMatrix(true);
 
-            await this.navigationPlugin.createNavMesh([navmeshGround], this.navMeshParameters);
+            // Create navigation mesh with adjusted parameters
+            const navmeshParams = {
+                cs: 0.2,
+                ch: 0.2,
+                walkableSlopeAngle: 35,
+                walkableHeight: 1.0,
+                walkableClimb: 1.0,
+                walkableRadius: 1.0,
+                maxEdgeLen: 12.0,
+                maxSimplificationError: 1.3,
+                minRegionArea: 8,
+                mergeRegionArea: 20,
+                maxVertsPerPoly: 6,
+                detailSampleDist: 6,
+                detailSampleMaxError: 1,
+            };
+
+            // Build navigation mesh
+            await this.navigationPlugin.createNavMesh([navmeshGround], navmeshParams);
+            
+            // Build debug data
+            this.navigationPlugin.createDebugNavMesh();
+            
             navmeshGround.dispose(); // Clean up temporary mesh
-            console.log("Navigation mesh created");
+            console.log("Navigation mesh created successfully");
         } catch (error) {
             console.error("Failed to create navigation mesh:", error);
             throw error;
@@ -108,41 +130,23 @@ class UnderwaterLandscape {
 
     debugDrawNavMesh() {
         try {
-            if (!this.navigationPlugin || !this.navigationPlugin.navMesh) {
-                console.warn("No navigation mesh available for visualization");
+            if (!this.navigationPlugin) {
+                console.warn("No navigation plugin available for visualization");
+                return;
+            }
+
+            // Get debug data directly from the navigation plugin
+            const navmeshData = this.navigationPlugin.getDebugData();
+            if (!navmeshData) {
+                console.warn("No debug data available for navigation mesh");
                 return;
             }
 
             // Create debug visualization mesh
             const debugMesh = new BABYLON.Mesh('navmeshDebug', this.scene);
-            const vertexData = new BABYLON.VertexData();
             
-            // Get navigation mesh data
-            const triangleCount = this.navigationPlugin.navMesh.getTriangleCount();
-            const positions = [];
-            const indices = [];
-            
-            // Build mesh data from navigation triangles
-            for (let i = 0; i < triangleCount; i++) {
-                const triangle = this.navigationPlugin.navMesh.getTriangle(i);
-                const verts = triangle.getVertices();
-                
-                // Add vertices
-                positions.push(
-                    verts[0].x, verts[0].y, verts[0].z,
-                    verts[1].x, verts[1].y, verts[1].z,
-                    verts[2].x, verts[2].y, verts[2].z
-                );
-                
-                // Add indices
-                const baseIndex = i * 3;
-                indices.push(baseIndex, baseIndex + 1, baseIndex + 2);
-            }
-            
-            // Apply vertex data
-            vertexData.positions = positions;
-            vertexData.indices = indices;
-            vertexData.applyToMesh(debugMesh);
+            // Apply the debug data directly to the mesh
+            navmeshData.applyToMesh(debugMesh);
             
             // Create debug material
             const debugMaterial = new BABYLON.StandardMaterial('navmeshDebugMat', this.scene);
@@ -222,10 +226,18 @@ class UnderwaterLandscape {
                 const z = (Math.random() - 0.5) * (100 - 2 * margin);
                 const y = this.getHeightAtPoint(x, z);
                 const position = new BABYLON.Vector3(x, y, z);
-                const navPoint = this.navigationPlugin.getClosestPoint(position);
 
-                if (navPoint && this.isPointNavigable(navPoint)) {
-                    console.log(`Found valid position at: ${navPoint.x}, ${navPoint.y}, ${navPoint.z}`);
+                // Get closest navigable point
+                const navPoint = this.navigationPlugin.getClosestPoint(position);
+                
+                if (navPoint) {
+                    // Ensure the point is actually on the terrain
+                    navPoint.y = this.getHeightAtPoint(navPoint.x, navPoint.z) + 
+                                SimulationConfig.entities.crabs.spawnHeight;
+                    
+                    if (SimulationConfig.debug.logSpawnPositions) {
+                        console.log(`Found valid position at: ${navPoint.x.toFixed(2)}, ${navPoint.y.toFixed(2)}, ${navPoint.z.toFixed(2)}`);
+                    }
                     return navPoint;
                 }
             } catch (error) {
@@ -235,6 +247,8 @@ class UnderwaterLandscape {
         }
 
         console.warn("Could not find valid random position, using center");
-        return this.navigationPlugin.getClosestPoint(BABYLON.Vector3.Zero());
+        const center = new BABYLON.Vector3(0, this.getHeightAtPoint(0, 0) + 
+                      SimulationConfig.entities.crabs.spawnHeight, 0);
+        return this.navigationPlugin.getClosestPoint(center) || center;
     }
 } 

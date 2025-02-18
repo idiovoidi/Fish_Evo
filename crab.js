@@ -2,171 +2,81 @@
 class Crab extends YUKA.Vehicle {
     constructor(navigationPlugin, landscape) {
         super();
+        
+        // Yuka vehicle properties
         this.maxSpeed = SimulationConfig.entities.crabs.maxSpeed;
         this.maxForce = SimulationConfig.entities.crabs.maxForce;
         this.updateNeighborhood = true;
         this.neighborhoodRadius = SimulationConfig.entities.crabs.neighborhoodRadius;
-        this.currentPath = null;
-        this.pathIndex = 0;
-        this.navigationPlugin = navigationPlugin;
+        
+        // Environment references
         this.landscape = landscape;
+        this.navigationPlugin = navigationPlugin;
+        
+        // Movement state
         this.waitTime = 0;
         this.waitDuration = SimulationConfig.entities.crabs.waitDurationRange.min + 
             Math.random() * (SimulationConfig.entities.crabs.waitDurationRange.max - SimulationConfig.entities.crabs.waitDurationRange.min);
         
-        // Physics properties
-        this.velocity = new YUKA.Vector3();
-        this.acceleration = new YUKA.Vector3();
-        this.gravity = -9.81;
-        this.isGrounded = false;
-        this.groundCheckDistance = 0.1;
-        this.jumpForce = 5;
+        // Setup steering behaviors
+        this.setupSteeringBehaviors();
+    }
+
+    setupSteeringBehaviors() {
+        // Wander behavior for natural movement
+        const wanderBehavior = new YUKA.WanderBehavior();
+        wanderBehavior.weight = 1;
+        wanderBehavior.radius = 2;
+        wanderBehavior.distance = 4;
+        wanderBehavior.jitter = 0.5;
+        
+        // Separation to avoid other crabs
+        const separationBehavior = new YUKA.SeparationBehavior();
+        separationBehavior.weight = 2;
+        
+        // Add behaviors
+        this.steering.add(wanderBehavior);
+        this.steering.add(separationBehavior);
     }
 
     update(delta) {
-        // Apply physics
-        this.applyPhysics(delta);
-
         if (this.waitTime > 0) {
             this.waitTime -= delta;
             if (this.waitTime <= 0) {
-                this.setNewRandomDestination();
+                this.steering.clear();
+                this.setupSteeringBehaviors();
             }
             return super.update(delta);
         }
 
-        if (this.currentPath && this.currentPath.length > 0 && this.isGrounded) {
-            const target = this.currentPath[this.pathIndex];
-            const distance = this.position.distanceTo(target);
+        // Get current ground height
+        const groundY = this.landscape.getHeightAtPoint(this.position.x, this.position.z);
+        this.position.y = groundY + SimulationConfig.entities.crabs.spawnHeight;
 
-            if (distance < 0.5) {
-                this.pathIndex++;
-                if (this.pathIndex >= this.currentPath.length) {
-                    this.waitTime = this.waitDuration;
-                    this.steering.clear();
-                }
-            } else {
-                // Update steering to follow current path point
-                this.steering.clear();
-                const seekBehavior = new YUKA.SeekBehavior(target);
-                seekBehavior.weight = 1;
-                this.steering.add(seekBehavior);
+        // Check if we should wait
+        const speed = this.velocity.length();
+        if (speed < 0.1) {
+            this.waitTime = this.waitDuration;
+        }
 
-                // Add obstacle avoidance if needed
-                if (this.checkForObstacles()) {
-                    const avoidanceBehavior = new YUKA.ObstacleAvoidanceBehavior();
-                    avoidanceBehavior.weight = 2;
-                    this.steering.add(avoidanceBehavior);
-                }
-            }
+        // Constrain to terrain bounds
+        const BOUND_MARGIN = 5;
+        const TERRAIN_SIZE = 100;
+        const halfSize = TERRAIN_SIZE / 2 - BOUND_MARGIN;
+
+        if (Math.abs(this.position.x) > halfSize || Math.abs(this.position.z) > halfSize) {
+            // Create a seek behavior to return to center
+            const centerSeek = new YUKA.SeekBehavior(new YUKA.Vector3(0, this.position.y, 0));
+            centerSeek.weight = 3;
+            this.steering.clear();
+            this.steering.add(centerSeek);
+            // Re-add standard behaviors with lower weights
+            const wander = new YUKA.WanderBehavior();
+            wander.weight = 0.5;
+            this.steering.add(wander);
         }
 
         return super.update(delta);
-    }
-
-    applyPhysics(delta) {
-        // Apply gravity
-        this.acceleration.y += this.gravity * delta;
-
-        // Update velocity
-        this.velocity.add(this.acceleration.multiplyScalar(delta));
-
-        // Check ground collision
-        const groundY = this.landscape.getHeightAtPoint(this.position.x, this.position.z);
-        const heightAboveGround = this.position.y - groundY;
-
-        if (heightAboveGround <= SimulationConfig.entities.crabs.spawnHeight + this.groundCheckDistance) {
-            // Ground collision
-            this.position.y = groundY + SimulationConfig.entities.crabs.spawnHeight;
-            this.velocity.y = 0;
-            this.acceleration.y = 0;
-            this.isGrounded = true;
-        } else {
-            this.isGrounded = false;
-        }
-
-        // Apply velocity to position
-        this.position.add(this.velocity.multiplyScalar(delta));
-
-        // Reset acceleration
-        this.acceleration.set(0, 0, 0);
-    }
-
-    checkForObstacles() {
-        // Implement obstacle detection using raycasts
-        const forward = new BABYLON.Vector3(
-            Math.sin(this.rotation.y),
-            0,
-            Math.cos(this.rotation.y)
-        );
-        
-        const ray = new BABYLON.Ray(
-            new BABYLON.Vector3(this.position.x, this.position.y, this.position.z),
-            forward,
-            2 // Detection range
-        );
-
-        const hit = this.landscape.scene.pickWithRay(ray);
-        return hit && hit.hit;
-    }
-
-    setNewRandomDestination() {
-        if (!this.isGrounded) {
-            this.waitTime = 0.5; // Wait until grounded
-            return;
-        }
-
-        try {
-            const destination = this.landscape.getRandomNavigablePosition();
-            
-            if (!destination) {
-                console.warn('Could not find valid destination for crab');
-                this.waitTime = 1;
-                return;
-            }
-
-            const startPos = new BABYLON.Vector3(
-                this.position.x,
-                this.position.y,
-                this.position.z
-            );
-            
-            // Ensure destination is above terrain
-            const groundY = this.landscape.getHeightAtPoint(destination.x, destination.z);
-            destination.y = groundY + SimulationConfig.entities.crabs.spawnHeight;
-
-            // Compute path using navigation plugin
-            const path = this.navigationPlugin.computePath(startPos, destination);
-            
-            if (path && path.length > 0) {
-                // Convert path points to Yuka vectors and ensure they're above terrain
-                this.currentPath = path.map(p => {
-                    const groundY = this.landscape.getHeightAtPoint(p.x, p.z);
-                    return new YUKA.Vector3(
-                        p.x,
-                        groundY + SimulationConfig.entities.crabs.spawnHeight,
-                        p.z
-                    );
-                });
-                this.pathIndex = 0;
-                
-                // Set seek behavior to first point
-                this.steering.clear();
-                const seekBehavior = new YUKA.SeekBehavior(this.currentPath[0]);
-                seekBehavior.weight = 1;
-                this.steering.add(seekBehavior);
-
-                if (SimulationConfig.debug.logSpawnPositions) {
-                    console.log(`Crab path set from (${startPos.x.toFixed(2)}, ${startPos.y.toFixed(2)}, ${startPos.z.toFixed(2)}) to (${destination.x.toFixed(2)}, ${destination.y.toFixed(2)}, ${destination.z.toFixed(2)})`);
-                }
-            } else {
-                console.warn('No valid path found for crab');
-                this.waitTime = 1;
-            }
-        } catch (error) {
-            console.error('Error setting new destination for crab:', error);
-            this.waitTime = 1;
-        }
     }
 }
 
