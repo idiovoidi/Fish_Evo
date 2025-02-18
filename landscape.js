@@ -1,0 +1,210 @@
+// Create underwater landscape
+class UnderwaterLandscape {
+    constructor(scene) {
+        this.scene = scene;
+        this.navigationPlugin = null;
+        this.navMeshParameters = {
+            cs: 0.2,
+            ch: 0.2,
+            walkableSlopeAngle: 35,
+            walkableHeight: 1.0,
+            walkableClimb: 1.0,
+            walkableRadius: 1.0,
+            maxEdgeLen: 12.0,
+            maxSimplificationError: 1.3,
+            minRegionArea: 8,
+            mergeRegionArea: 20,
+            maxVertsPerPoly: 6,
+            detailSampleDist: 6,
+            detailSampleMaxError: 1,
+        };
+    }
+
+    async initializeNavigation() {
+        // Initialize Recast plugin with proper await
+        const recastInstance = await Recast();
+        this.navigationPlugin = new BABYLON.RecastJSPlugin(recastInstance);
+        console.log("Navigation plugin initialized");
+    }
+
+    async setup() {
+        try {
+            // Initialize navigation first
+            await this.initializeNavigation();
+            
+            return new Promise((resolve) => {
+                // Create underwater terrain
+                this.terrain = BABYLON.MeshBuilder.CreateGroundFromHeightMap(
+                    'terrain',
+                    'https://playground.babylonjs.com/textures/heightMap.png',
+                    {
+                        width: 100,
+                        height: 100,
+                        subdivisions: 50,
+                        minHeight: 0,
+                        maxHeight: 10,
+                        onReady: async (mesh) => {
+                            // Create terrain material
+                            const terrainMaterial = new BABYLON.StandardMaterial('terrainMaterial', this.scene);
+                            terrainMaterial.diffuseColor = new BABYLON.Color3(0.7, 0.7, 0.5);
+                            terrainMaterial.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+                            mesh.material = terrainMaterial;
+                            mesh.position.y = -10;
+
+                            // Create water environment (semi-transparent box)
+                            this.waterBox = BABYLON.MeshBuilder.CreateBox(
+                                'waterBox',
+                                { width: 100, height: 40, depth: 100 },
+                                this.scene
+                            );
+                            const waterMaterial = new BABYLON.StandardMaterial('waterMaterial', this.scene);
+                            waterMaterial.diffuseColor = new BABYLON.Color3(0.4, 0.6, 0.9);
+                            waterMaterial.alpha = 0.3;
+                            waterMaterial.backFaceCulling = false; // Show both sides of water
+                            this.waterBox.material = waterMaterial;
+                            this.waterBox.position.y = 10;
+
+                            try {
+                                // Create navigation mesh
+                                await this.createNavigationMesh();
+                                
+                                // Debug visualization of navigation mesh
+                                this.debugDrawNavMesh();
+
+                                console.log("Landscape setup complete");
+                                resolve();
+                            } catch (error) {
+                                console.error("Error creating navigation mesh:", error);
+                                resolve(); // Resolve anyway to not block scene creation
+                            }
+                        }
+                    },
+                    this.scene
+                );
+            });
+        } catch (error) {
+            console.error("Error setting up landscape:", error);
+            throw error;
+        }
+    }
+
+    async createNavigationMesh() {
+        try {
+            // Create a temporary collision mesh for navigation
+            const navmeshGround = this.terrain.clone("navmeshGround");
+            navmeshGround.position = this.terrain.position;
+            navmeshGround.scaling = this.terrain.scaling;
+            navmeshGround.rotation = this.terrain.rotation;
+            navmeshGround.computeWorldMatrix(true);
+
+            await this.navigationPlugin.createNavMesh([navmeshGround], this.navMeshParameters);
+            navmeshGround.dispose(); // Clean up temporary mesh
+            console.log("Navigation mesh created");
+        } catch (error) {
+            console.error("Failed to create navigation mesh:", error);
+            throw error;
+        }
+    }
+
+    debugDrawNavMesh() {
+        try {
+            const navmeshVertexData = this.navigationPlugin.getDebugData();
+            if (!navmeshVertexData) {
+                console.warn("No debug data available for navigation mesh");
+                return;
+            }
+
+            const navmeshMesh = new BABYLON.Mesh('navmesh', this.scene);
+            navmeshVertexData.applyToMesh(navmeshMesh);
+            
+            const navmeshMaterial = new BABYLON.StandardMaterial('navmeshMat', this.scene);
+            navmeshMaterial.diffuseColor = new BABYLON.Color3(0.5, 1, 0.5);
+            navmeshMaterial.alpha = 0.3;
+            navmeshMaterial.wireframe = true;
+            navmeshMesh.material = navmeshMaterial;
+            navmeshMesh.position.y += 0.1; // Slight offset to prevent z-fighting
+
+            console.log("Navigation mesh visualization created");
+        } catch (error) {
+            console.error("Failed to create navigation mesh visualization:", error);
+        }
+    }
+
+    getNavigationPlugin() {
+        return this.navigationPlugin;
+    }
+
+    getTerrain() {
+        return this.terrain;
+    }
+
+    getWaterBox() {
+        return this.waterBox;
+    }
+
+    // Get height at specific point on terrain
+    getHeightAtPoint(x, z) {
+        if (!this.terrain) return -10;
+        
+        const ray = new BABYLON.Ray(
+            new BABYLON.Vector3(x, 100, z),
+            new BABYLON.Vector3(0, -1, 0),
+            200
+        );
+        const pick = this.scene.pickWithRay(ray, mesh => mesh === this.terrain);
+        return pick?.pickedPoint?.y || -10;
+    }
+
+    // Get nearest navigable point
+    getNearestNavigablePoint(position) {
+        if (!this.navigationPlugin) return position;
+        try {
+            return this.navigationPlugin.getClosestPoint(position);
+        } catch (error) {
+            console.warn("Failed to get nearest navigable point:", error);
+            return position;
+        }
+    }
+
+    // Check if point is navigable
+    isPointNavigable(position) {
+        if (!this.navigationPlugin) return false;
+        try {
+            const navPoint = this.navigationPlugin.getClosestPoint(position);
+            return navPoint && BABYLON.Vector3.Distance(position, navPoint) < 0.5;
+        } catch (error) {
+            console.warn("Failed to check if point is navigable:", error);
+            return false;
+        }
+    }
+
+    // Get random navigable position
+    getRandomNavigablePosition() {
+        if (!this.navigationPlugin) return new BABYLON.Vector3(0, -10, 0);
+
+        const margin = 5;
+        const maxAttempts = 50;
+        let attempts = 0;
+
+        while (attempts < maxAttempts) {
+            try {
+                const x = (Math.random() - 0.5) * (100 - 2 * margin);
+                const z = (Math.random() - 0.5) * (100 - 2 * margin);
+                const y = this.getHeightAtPoint(x, z);
+                const position = new BABYLON.Vector3(x, y, z);
+                const navPoint = this.navigationPlugin.getClosestPoint(position);
+
+                if (navPoint && this.isPointNavigable(navPoint)) {
+                    console.log(`Found valid position at: ${navPoint.x}, ${navPoint.y}, ${navPoint.z}`);
+                    return navPoint;
+                }
+            } catch (error) {
+                console.warn("Error finding random position:", error);
+            }
+            attempts++;
+        }
+
+        console.warn("Could not find valid random position, using center");
+        return this.navigationPlugin.getClosestPoint(BABYLON.Vector3.Zero());
+    }
+} 

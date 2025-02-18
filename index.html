@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Fish School Simulation - Yuka + Babylon.js</title>
+    <title>Underwater Scene - Yuka + Babylon.js</title>
     <style>
         html, body {
             margin: 0;
@@ -22,44 +22,77 @@
 </head>
 <body>
     <canvas id="renderCanvas"></canvas>
+    
     <!-- Load libraries first -->
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+    <script src="https://cdn.babylonjs.com/recast.js"></script>
     <script src="https://unpkg.com/yuka"></script>
+    
     <!-- Initialize app only after libraries are loaded -->
     <script>
-        // Check if libraries are loaded
-        function checkLibraries() {
-            return new Promise((resolve, reject) => {
-                const maxAttempts = 20;
-                let attempts = 0;
-                
-                function check() {
-                    if (typeof YUKA !== 'undefined' && typeof BABYLON !== 'undefined') {
-                        resolve();
-                    } else if (attempts >= maxAttempts) {
-                        reject(new Error('Failed to load required libraries'));
-                    } else {
+        async function loadScripts() {
+            try {
+                // Wait for libraries to load with timeout
+                await new Promise((resolve, reject) => {
+                    let attempts = 0;
+                    const maxAttempts = 50; // 5 seconds maximum wait
+                    
+                    const checkLibraries = () => {
                         attempts++;
-                        setTimeout(check, 100);
+                        if (typeof BABYLON !== 'undefined' && 
+                            typeof Recast !== 'undefined' && 
+                            typeof YUKA !== 'undefined') {
+                            console.log("All libraries loaded successfully");
+                            resolve();
+                        } else if (attempts >= maxAttempts) {
+                            reject(new Error("Timeout waiting for libraries to load"));
+                        } else {
+                            setTimeout(checkLibraries, 100);
+                        }
+                    };
+                    checkLibraries();
+                });
+
+                console.log("Loading application scripts...");
+                
+                // Load application scripts in order
+                const scripts = [
+                    'core/Camera.js',
+                    'fish.js',
+                    'crab.js',
+                    'landscape.js',
+                    'core/Scene.js'
+                ];
+
+                for (const script of scripts) {
+                    try {
+                        await new Promise((resolve, reject) => {
+                            const scriptElement = document.createElement('script');
+                            scriptElement.src = script;
+                            scriptElement.onload = () => {
+                                console.log(`Loaded ${script}`);
+                                resolve();
+                            };
+                            scriptElement.onerror = (error) => {
+                                reject(new Error(`Failed to load ${script}: ${error.message}`));
+                            };
+                            document.body.appendChild(scriptElement);
+                        });
+                    } catch (error) {
+                        console.error(`Error loading ${script}:`, error);
+                        throw error; // Stop loading if any script fails
                     }
                 }
                 
-                check();
-            });
+                console.log("All scripts loaded successfully");
+            } catch (error) {
+                console.error('Error during script loading:', error);
+                alert(`Failed to load required scripts: ${error.message}\nPlease refresh the page.`);
+            }
         }
 
-        // Load our app only after libraries are confirmed loaded
-        checkLibraries()
-            .then(() => {
-                const script = document.createElement('script');
-                script.src = 'fish.js';
-                document.body.appendChild(script);
-            })
-            .catch(error => {
-                console.error('Error loading libraries:', error);
-                alert('Failed to load required libraries. Please refresh the page.');
-            });
+        loadScripts();
     </script>
 </body>
 </html> 
