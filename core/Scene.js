@@ -7,10 +7,11 @@ class Scene {
         this.landscape = null;
         this.entityHandler = null;
         this.dayNightCycle = null;
-        this.seaweedManager = null;
         this.coralManager = null;
         this.debrisManager = null;
         this.sharkManager = null;
+        this.frameCount = 0;
+        this.fpsDisplay = null;
         
         // Handle window resize
         window.addEventListener('resize', () => {
@@ -26,36 +27,60 @@ class Scene {
             this.scene.clearColor = new BABYLON.Color4(0.05, 0.1, 0.15, 1);
             this.scene.ambientColor = new BABYLON.Color3(0.1, 0.2, 0.3);
             
-            // Enable debug layer
-            this.scene.debugLayer.show({
-                embedMode: true,
-                overlay: true
-            });
+            // Only enable debug layer if configured
+            if (SimulationConfig.debug.showNavMesh) {
+                this.scene.debugLayer.show({
+                    embedMode: true,
+                    overlay: true
+                });
+            }
 
-            // Enhanced underwater fog effect
+            // Setup FPS display if enabled
+            if (SimulationConfig.debug.showFPS) {
+                const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+                this.fpsDisplay = new BABYLON.GUI.TextBlock("fpsCounter");
+                this.fpsDisplay.text = "FPS: 0";
+                this.fpsDisplay.color = "white";
+                this.fpsDisplay.fontSize = 24;
+                this.fpsDisplay.textHorizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+                this.fpsDisplay.textVerticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+                this.fpsDisplay.left = 10;
+                this.fpsDisplay.top = 10;
+                advancedTexture.addControl(this.fpsDisplay);
+            }
+
+            // Enhanced underwater fog effect with configurable density
             this.scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
             this.scene.fogColor = new BABYLON.Color3(0.1, 0.2, 0.3);
-            this.scene.fogDensity = 0.03;
+            this.scene.fogDensity = SimulationConfig.graphics.fog.dayDensity;
 
             // Setup camera
             console.log("Setting up camera");
             this.camera = new Camera(this.scene, this.canvas);
             this.camera.setupMainCamera();
 
-            // Add underwater post-processing
+            // Add underwater post-processing with optimized settings
             const defaultPipeline = new BABYLON.DefaultRenderingPipeline(
                 "defaultPipeline", true, this.scene, [this.camera.getCamera()]
             );
             
-            // Configure pipeline for underwater effect
+            // Configure pipeline based on performance settings
             defaultPipeline.imageProcessing.exposure = 0.8;
             defaultPipeline.imageProcessing.contrast = 1.2;
-            defaultPipeline.chromaticAberration.aberrationAmount = 3;
-            defaultPipeline.chromaticAberration.isEnabled = true;
-            defaultPipeline.bloomEnabled = true;
-            defaultPipeline.bloomThreshold = 0.3;
-            defaultPipeline.bloomWeight = 0.5;
-            defaultPipeline.bloomKernel = 64;
+            
+            // Apply chromatic aberration settings
+            defaultPipeline.chromaticAberration.isEnabled = SimulationConfig.graphics.postProcessing.chromaticAberration.enabled;
+            if (defaultPipeline.chromaticAberration.isEnabled) {
+                defaultPipeline.chromaticAberration.aberrationAmount = 3;
+            }
+            
+            // Apply bloom settings
+            defaultPipeline.bloomEnabled = SimulationConfig.graphics.postProcessing.bloomEnabled;
+            if (defaultPipeline.bloomEnabled) {
+                defaultPipeline.bloomThreshold = 0.3;
+                defaultPipeline.bloomWeight = 0.5;
+                defaultPipeline.bloomKernel = SimulationConfig.graphics.postProcessing.bloomKernel;
+            }
 
             // Initialize day/night cycle before landscape
             console.log("Initializing day/night cycle");
@@ -72,11 +97,7 @@ class Scene {
             }
             console.log("Landscape setup complete");
 
-            // Initialize seaweed after landscape
-            console.log("Creating seaweed");
-            this.seaweedManager = new SeaweedManager(this.scene, this.landscape);
-
-            // Initialize coral after seaweed
+            // Initialize coral
             console.log("Creating coral reef");
             this.coralManager = new CoralManager(this.scene, this.landscape);
 
@@ -134,10 +155,33 @@ class Scene {
                 });
             }
 
-            // Setup animation loop
+            // Optimized animation loop with frame counting
             this.scene.onBeforeRenderObservable.add(() => {
-                if (this.entityHandler) this.entityHandler.update();
-                if (this.sharkManager) this.sharkManager.update();
+                this.frameCount++;
+                
+                // Update entities based on their update interval
+                if (this.entityHandler && this.frameCount % SimulationConfig.entities.fish.updateInterval === 0) {
+                    this.entityHandler.update();
+                }
+                
+                if (this.sharkManager && this.frameCount % SimulationConfig.entities.fish.updateInterval === 0) {
+                    this.sharkManager.update();
+                }
+                
+                // Update shadows based on configured interval
+                if (this.frameCount % SimulationConfig.graphics.shadows.updateInterval === 0) {
+                    this.scene.shadowGenerator?.getShadowMap()?.refresh();
+                }
+                
+                // Update FPS display
+                if (this.fpsDisplay && this.frameCount % 30 === 0) {
+                    this.fpsDisplay.text = `FPS: ${Math.round(this.engine.getFps())}`;
+                }
+                
+                // Reset frame counter to prevent overflow
+                if (this.frameCount > 1000000) {
+                    this.frameCount = 0;
+                }
             });
 
             console.log("Scene initialization complete");
