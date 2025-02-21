@@ -3,7 +3,15 @@ class OceanDebris {
         this.scene = scene;
         this.position = position;
         this.mesh = null;
+        
+        // Animation parameters
+        this.bobHeight = 0.1 + Math.random() * 0.1;  // Random bob height between 0.1 and 0.2
+        this.bobSpeed = 0.5 + Math.random() * 0.5;   // Random speed between 0.5 and 1.0
+        this.timeOffset = Math.random() * Math.PI * 2; // Random phase offset
+        this.originalY = position.y;
+        
         this.createDebris();
+        this.addBobAnimation();
     }
 
     createDebris() {
@@ -284,8 +292,42 @@ class OceanDebris {
         this.mesh.material = material;
     }
 
+    addBobAnimation() {
+        // Add animation to the scene's render loop
+        this.scene.onBeforeRenderObservable.add(() => {
+            if (this.mesh) {
+                const time = performance.now() * 0.001; // Convert to seconds
+                
+                // Calculate bob offset based on debris type
+                let bobOffset = Math.sin(time * this.bobSpeed + this.timeOffset) * this.bobHeight;
+                
+                // Adjust bobbing based on debris type
+                if (this.mesh.name.includes('starfish')) {
+                    bobOffset *= 0.5; // Reduced bobbing for starfish
+                } else if (this.mesh.name.includes('rock')) {
+                    bobOffset *= 0.3; // Minimal bobbing for rocks
+                } else if (this.mesh.name.includes('shell')) {
+                    // Add slight rotation to shells while bobbing
+                    this.mesh.rotation.x += Math.sin(time * this.bobSpeed * 0.5) * 0.001;
+                    this.mesh.rotation.z += Math.cos(time * this.bobSpeed * 0.5) * 0.001;
+                }
+                
+                // Apply the bobbing motion
+                this.mesh.position.y = this.originalY + bobOffset;
+                
+                // Add subtle rotation for lighter objects
+                if (!this.mesh.name.includes('rock')) {
+                    const rotationSpeed = 0.0005;
+                    this.mesh.rotation.y += Math.sin(time * this.bobSpeed * 0.3) * rotationSpeed;
+                }
+            }
+        });
+    }
+
     dispose() {
         if (this.mesh) {
+            // Remove the animation observable before disposing
+            this.scene.onBeforeRenderObservable.clear();
             this.mesh.dispose();
         }
     }
