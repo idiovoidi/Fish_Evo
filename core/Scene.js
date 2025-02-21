@@ -137,8 +137,6 @@ class Scene {
             console.log("Initializing food spawner");
             this.foodSpawner = new FoodSpawner(this.scene, this.landscape);
 
-            console.log("Entity initialization complete");
-
             // Enhanced water material adjustments based on time of day
             if (this.landscape.waterBox) {
                 const waterMaterial = this.landscape.waterBox.material;
@@ -159,6 +157,12 @@ class Scene {
                         : new BABYLON.Color3(0.1, 0.2, 0.3);
                 });
             }
+
+            // Initialize fish inspector after all other components
+            console.log("Initializing fish inspector");
+            this.fishInspector = new FishInspector(this);
+
+            console.log("Entity initialization complete");
 
             // Update animation loop to include food spawner
             this.scene.onBeforeRenderObservable.add(() => {
