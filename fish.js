@@ -90,7 +90,8 @@ class Fish extends YUKA.Vehicle {
             isResting: false,
             isFleeing: false,
             isSchooling: true,
-            isMating: false
+            isMating: false,
+            isDead: false
         };
 
         this.energy = 1.0;
@@ -170,6 +171,13 @@ class Fish extends YUKA.Vehicle {
     }
 
     update(delta) {
+        // If fish is dead, handle floating behavior
+        if (this.state.isDead) {
+            this.handleDeadBehavior(delta);
+            super.update(delta);
+            return;
+        }
+
         // Update age
         this.age.age += delta;
         if (this.age.age >= this.age.maturityAge && !this.age.isAdult) {
@@ -211,6 +219,11 @@ class Fish extends YUKA.Vehicle {
         if (dt > 1000) { // Update every second
             this.energy = Math.max(0, this.energy - 0.05);
             this.lastEnergyUpdate = now;
+            
+            // Check for death by starvation
+            if (this.energy <= 0 && !this.state.isDead) {
+                this.die();
+            }
         }
     }
 
@@ -407,11 +420,68 @@ class Fish extends YUKA.Vehicle {
     }
 
     die() {
-        // Implement death behavior
-        console.log(`Fish ${this.id} has died`);
-        // Signal to manager to remove this fish
-        if (this.scene.entityHandler?.fishManager) {
-            this.scene.entityHandler.fishManager.removeFish(this);
+        // Set dead state
+        this.state.isDead = true;
+        
+        // Disable all behaviors
+        this.steering.behaviors.forEach(behavior => {
+            behavior.active = false;
+        });
+        
+        // Add slight random rotation for more natural look
+        this.rotation.x = (Math.random() - 0.5) * Math.PI * 0.5; // Random tilt
+        this.rotation.z = (Math.random() - 0.5) * Math.PI * 0.3; // Random roll
+        
+        // Change material to indicate death
+        const renderComponent = this.renderComponent;
+        if (renderComponent && renderComponent.material) {
+            renderComponent.material.diffuseColor = new BABYLON.Color3(0.5, 0.5, 0.5); // Greyish color
+            renderComponent.material.alpha = 0.8; // Slightly transparent
+        }
+        
+        // Fish will naturally float up due to handleDeadBehavior
+        console.log(`Fish ${this.id} has died and is floating`);
+        
+        // After 30 seconds, remove the fish
+        setTimeout(() => {
+            if (this.scene.entityHandler?.fishManager) {
+                this.scene.entityHandler.fishManager.removeFish(this);
+            }
+        }, 30000);
+    }
+
+    handleDeadBehavior(delta) {
+        // Slowly float upward
+        this.velocity.y = 0.5;
+        
+        // Add slight random movement for more realistic floating
+        this.velocity.x += (Math.random() - 0.5) * 0.1;
+        this.velocity.z += (Math.random() - 0.5) * 0.1;
+        
+        // Slow down horizontal movement
+        this.velocity.x *= 0.98;
+        this.velocity.z *= 0.98;
+        
+        // Add slight wobble
+        this.rotation.x += Math.sin(performance.now() * 0.001) * 0.01;
+        this.rotation.z += Math.cos(performance.now() * 0.001) * 0.01;
+        
+        // Modified boundary constraints for dead fish
+        const bounds = {
+            minX: -40, maxX: 40,
+            minY: 1, maxY: 20,  // Allow floating higher
+            minZ: -40, maxZ: 40
+        };
+        
+        // Bounce off boundaries very slowly
+        if (this.position.x < bounds.minX || this.position.x > bounds.maxX) {
+            this.velocity.x *= -0.5;
+        }
+        if (this.position.y < bounds.minY || this.position.y > bounds.maxY) {
+            this.velocity.y *= -0.5;
+        }
+        if (this.position.z < bounds.minZ || this.position.z > bounds.maxZ) {
+            this.velocity.z *= -0.5;
         }
     }
 }
