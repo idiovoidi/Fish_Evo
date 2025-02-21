@@ -1,0 +1,39 @@
+{
+    "asset": {
+        "version": "2.0",
+        "generator": "Custom Fish Model"
+    },
+    "scene": 0,
+    "scenes": [
+        {
+            "nodes": [0]
+        }
+    ],
+    "nodes": [
+        {
+            "mesh": 0,
+            "name": "Fish"
+        }
+    ],
+    "meshes": [
+        {
+            "primitives": [
+                {
+                    "attributes": {
+                        "POSITION": 0,
+                        "NORMAL": 1
+                    },
+                    "indices": 2
+                }
+            ]
+        }
+    ],
+    "buffers": [
+        {
+            "uri": "fish.bin",
+            "byteLength": 0
+        }
+    ],
+    "bufferViews": [],
+    "accessors": []
+} 
