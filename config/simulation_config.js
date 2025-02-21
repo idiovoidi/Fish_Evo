@@ -20,6 +20,16 @@ const SimulationConfig = {
             updateInterval: 2
         }
     },
+    food: {
+        maxParticles: 50,        // Maximum number of food particles in the scene
+        spawnInterval: 1000,     // Spawn check interval in milliseconds
+        daySpawnRate: 15,        // Particles per minute during day
+        nightSpawnRate: 5,       // Particles per minute during night
+        lifetime: {              // How long food particles last
+            min: 20000,          // Minimum lifetime in milliseconds
+            max: 30000           // Maximum lifetime in milliseconds
+        }
+    },
     graphics: {
         shadows: {
             enabled: true,

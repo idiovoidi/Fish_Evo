@@ -10,6 +10,7 @@ class Scene {
         this.coralManager = null;
         this.debrisManager = null;
         this.sharkManager = null;
+        this.foodSpawner = null;
         this.frameCount = 0;
         this.fpsDisplay = null;
         
@@ -132,6 +133,10 @@ class Scene {
                 });
             }
 
+            // Initialize food spawner after landscape
+            console.log("Initializing food spawner");
+            this.foodSpawner = new FoodSpawner(this.scene, this.landscape);
+
             console.log("Entity initialization complete");
 
             // Enhanced water material adjustments based on time of day
@@ -155,7 +160,7 @@ class Scene {
                 });
             }
 
-            // Optimized animation loop with frame counting
+            // Update animation loop to include food spawner
             this.scene.onBeforeRenderObservable.add(() => {
                 this.frameCount++;
                 
@@ -166,6 +171,11 @@ class Scene {
                 
                 if (this.sharkManager && this.frameCount % SimulationConfig.entities.fish.updateInterval === 0) {
                     this.sharkManager.update();
+                }
+
+                // Update food spawner
+                if (this.foodSpawner) {
+                    this.foodSpawner.update();
                 }
                 
                 // Update shadows based on configured interval
