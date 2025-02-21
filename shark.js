@@ -1,6 +1,11 @@
 class Shark extends YUKA.Vehicle {
     constructor(scene) {
+        console.log("Shark: Creating new shark instance...");
         super();
+        if (!scene) {
+            console.error("Shark: Scene is required but was not provided!");
+            return;
+        }
         this.scene = scene;
         this.mesh = null;
         this.skeleton = null;
@@ -18,8 +23,10 @@ class Shark extends YUKA.Vehicle {
         this.patrolDuration = 10 + Math.random() * 10;
         
         // Create shark mesh and animations
+        console.log("Shark: Setting up mesh and animations...");
         this.createShark();
         this.setupBehaviors();
+        console.log("Shark: Initialization complete");
     }
 
     createShark() {
@@ -381,48 +388,93 @@ class Shark extends YUKA.Vehicle {
     }
 }
 
-class SharkManager {
-    constructor(scene) {
+class SharkHandler {
+    constructor(scene, landscape) {
+        console.log("SharkHandler: Initializing...");
         this.scene = scene;
+        this.landscape = landscape;
+        this.sharks = [];
         this.entityManager = new YUKA.EntityManager();
         this.time = new YUKA.Time();
-        this.sharks = [];
-        this.createSharks();
+        
+        // Create initial shark
+        this.createShark();
+        console.log("SharkHandler: Initialization complete");
     }
 
-    createSharks(count = 1) {
-        for (let i = 0; i < count; i++) {
-            const shark = new Shark(this.scene);
-            
-            // Set initial position
-            shark.position.set(
-                (Math.random() - 0.5) * 80,
-                5 + Math.random() * 10,
-                (Math.random() - 0.5) * 80
-            );
-            
-            shark.rotation.fromEuler(0, Math.random() * Math.PI * 2, 0);
-            
-            // Add to managers
-            this.entityManager.add(shark);
-            this.sharks.push(shark);
+    createShark() {
+        console.log("SharkHandler: Creating new shark");
+        const shark = new Shark(this.scene);
+        
+        // Set initial position above the terrain
+        const spawnPosition = this.getSpawnPosition();
+        shark.position.copy(spawnPosition);
+        shark.rotation.fromEuler(0, Math.random() * Math.PI * 2, 0);
+        
+        // Add to managers
+        this.entityManager.add(shark);
+        this.sharks.push(shark);
+        
+        return shark;
+    }
+
+    getSpawnPosition() {
+        // Get a random position above the terrain
+        const x = (Math.random() - 0.5) * 80;
+        const z = (Math.random() - 0.5) * 80;
+        let y = 5; // Default height
+
+        // If landscape exists, position above terrain
+        if (this.landscape && this.landscape.getHeightAtPoint) {
+            const terrainHeight = this.landscape.getHeightAtPoint(x, z);
+            y = terrainHeight + 5 + Math.random() * 5;
         }
+
+        return new YUKA.Vector3(x, y, z);
     }
 
     update() {
+        if (!this.entityManager || !this.time) {
+            console.error("SharkHandler: Required components not initialized!");
+            return;
+        }
+
         const delta = this.time.update().getDelta();
+        
+        // Update all sharks
+        this.sharks.forEach((shark, index) => {
+            if (!shark.mesh || !shark.mesh.isEnabled()) {
+                console.log(`SharkHandler: Shark ${index} needs recreation`);
+                this.removeShark(shark);
+                this.createShark();
+            }
+        });
+        
         this.entityManager.update(delta);
     }
 
+    removeShark(shark) {
+        const index = this.sharks.indexOf(shark);
+        if (index > -1) {
+            this.sharks.splice(index, 1);
+            this.entityManager.remove(shark);
+            shark.dispose();
+        }
+    }
+
     dispose() {
-        this.sharks.forEach(shark => shark.dispose());
+        this.sharks.forEach(shark => {
+            shark.dispose();
+        });
+        this.sharks = [];
+        this.entityManager = null;
     }
 }
 
 // Export the classes
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { Shark, SharkManager };
+    module.exports = { Shark, SharkHandler };
 } else if (typeof window !== 'undefined') {
     window.Shark = Shark;
-    window.SharkManager = SharkManager;
+    window.SharkHandler = SharkHandler;
 } 

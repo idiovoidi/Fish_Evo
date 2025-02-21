@@ -42,9 +42,10 @@ class SeekFoodBehavior extends YUKA.SteeringBehavior {
 
 // Fish class extending Yuka's Vehicle
 class Fish extends YUKA.Vehicle {
-    constructor(scene) {
+    constructor(scene, id) {
         super();
         this.scene = scene;
+        this.id = id;  // Store the unique ID
         this.maxSpeed = 8;
         this.maxForce = 1;
         this.updateNeighborhood = true;
@@ -233,14 +234,18 @@ class FishManager {
         this.entityManager = new YUKA.EntityManager();
         this.time = new YUKA.Time();
         this.fishes = [];
+        this._nextFishId = 0;  // Counter for generating unique IDs
     }
 
     createFishSchool(numFish = 30) {
         const SPAWN_RANGE = 15;
 
         for (let i = 0; i < numFish; i++) {
-            // Create fish entity
-            const fish = new Fish(this.scene);
+            // Create fish entity with unique ID
+            const fishId = `fish_${this._nextFishId++}`;
+            const fish = new Fish(this.scene, fishId);
+            
+            // Set position and rotation
             fish.position.set(
                 (Math.random() - 0.5) * SPAWN_RANGE,
                 5 + (Math.random() - 0.5) * SPAWN_RANGE / 2,
@@ -248,8 +253,8 @@ class FishManager {
             );
             fish.rotation.fromEuler(0, Math.random() * Math.PI * 2, 0);
 
-            // Create fish mesh
-            const fishMesh = this.createFishMesh();
+            // Create fish mesh and set its name to include the ID
+            const fishMesh = this.createFishMesh(fishId);
             fishMesh.bakeCurrentTransformIntoVertices();
             fishMesh.freezeWorldMatrix();
 
@@ -282,44 +287,49 @@ class FishManager {
         }
     }
 
-    createFishMesh() {
-        // Create fish body
+    createFishMesh(fishId) {
+        // Create fish body with unique name
         const body = BABYLON.MeshBuilder.CreateCapsule(
-            'fishBody',
+            `${fishId}_body`,
             { radius: 0.2, height: 1 },
             this.scene
         );
         
-        // Create tail
+        // Create tail with unique name
         const tail = BABYLON.MeshBuilder.CreateCylinder(
-            'fishTail',
+            `${fishId}_tail`,
             { diameterTop: 0.4, diameterBottom: 0, height: 0.5 },
             this.scene
         );
         tail.rotation.x = Math.PI / 2;
         tail.position.z = -0.6;
 
-        // Create fins
+        // Create fins with unique names
         const finLeft = BABYLON.MeshBuilder.CreateCylinder(
-            'finLeft',
+            `${fishId}_finLeft`,
             { diameterTop: 0.2, diameterBottom: 0, height: 0.3 },
             this.scene
         );
         finLeft.rotation.z = -Math.PI / 4;
         finLeft.position.set(0.3, 0, 0);
 
-        const finRight = finLeft.clone('finRight');
+        const finRight = finLeft.clone(`${fishId}_finRight`);
         finRight.rotation.z = Math.PI / 4;
         finRight.position.x = -0.3;
 
-        // Merge all parts
+        // Merge all parts with unique name
         const fish = BABYLON.Mesh.MergeMeshes(
             [body, tail, finLeft, finRight],
+            true,
+            undefined,
+            undefined,
+            undefined,
             true
         );
+        fish.name = fishId;  // Set the merged mesh name
         
-        // Create and apply material
-        const fishMaterial = new BABYLON.StandardMaterial('fishMaterial', this.scene);
+        // Create and apply material with unique name
+        const fishMaterial = new BABYLON.StandardMaterial(`${fishId}_material`, this.scene);
         fishMaterial.diffuseColor = new BABYLON.Color3(
             0.4 + Math.random() * 0.3,
             0.7 + Math.random() * 0.3,
@@ -328,6 +338,11 @@ class FishManager {
         fish.material = fishMaterial;
 
         return fish;
+    }
+
+    // Add method to get fish by ID
+    getFishById(id) {
+        return this.fishes.find(fish => fish.id === id);
     }
 
     update() {

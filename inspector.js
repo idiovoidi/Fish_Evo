@@ -5,6 +5,8 @@ class FishInspector {
         this.selectedFish = null;
         this.highlightMesh = null;
         this.inspectorUI = null;
+        this.fishListPanel = null;
+        this.isListExpanded = false;
         
         this.setupUI();
         this.setupHighlight();
@@ -12,18 +14,24 @@ class FishInspector {
     }
 
     setupUI() {
+        console.log("Setting up Fish Inspector UI...");
         // Create fullscreen UI
         const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("inspectorUI");
         this.inspectorUI = advancedTexture;
 
-        // Create inspector panel
+        // Create main inspector panel
         const panel = new BABYLON.GUI.StackPanel();
         panel.width = "200px";
         panel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
         panel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
         panel.top = "20px";
         panel.right = "20px";
+        panel.background = "#264d59AA";  // Semi-transparent background
+        panel.paddingBottom = "10px";
+        panel.paddingTop = "10px";
+        panel.isVisible = true;  // Make sure panel is visible by default
         advancedTexture.addControl(panel);
+        this.panel = panel;
 
         // Title
         const title = new BABYLON.GUI.TextBlock();
@@ -32,6 +40,45 @@ class FishInspector {
         title.color = "white";
         title.fontSize = 20;
         panel.addControl(title);
+
+        // Add fish list toggle button
+        const toggleButton = new BABYLON.GUI.Button();
+        toggleButton.name = "toggleButton";
+        toggleButton.width = "180px";
+        toggleButton.height = "30px";
+        toggleButton.color = "white";
+        toggleButton.cornerRadius = 10;
+        toggleButton.background = "#407080";
+        toggleButton.thickness = 1;
+
+        const buttonText = new BABYLON.GUI.TextBlock();
+        buttonText.text = "Show Fish List";
+        buttonText.color = "white";
+        buttonText.fontSize = 14;
+        toggleButton.addControl(buttonText);
+        
+        toggleButton.onPointerClickObservable.add(() => {
+            console.log("Toggle button clicked");
+            this.toggleFishList();
+        });
+        panel.addControl(toggleButton);
+        this.toggleButton = toggleButton;
+        this.toggleButtonText = buttonText;
+
+        // Create collapsible fish list panel
+        const fishListPanel = new BABYLON.GUI.StackPanel();
+        fishListPanel.width = "180px";
+        fishListPanel.height = "0px"; // Start collapsed
+        fishListPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        fishListPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        fishListPanel.top = "70px";
+        fishListPanel.right = "20px";
+        fishListPanel.background = "#264d59";
+        fishListPanel.paddingBottom = "10px";
+        fishListPanel.paddingTop = "10px";
+        fishListPanel.isVisible = false;
+        advancedTexture.addControl(fishListPanel);
+        this.fishListPanel = fishListPanel;
 
         // Energy bar background
         const energyBarBg = new BABYLON.GUI.Rectangle();
@@ -57,7 +104,7 @@ class FishInspector {
         // Energy text
         const energyText = new BABYLON.GUI.TextBlock();
         energyText.height = "20px";
-        energyText.text = "Energy: 100%";
+        energyText.text = "Energy: --";
         energyText.color = "white";
         panel.addControl(energyText);
         this.energyText = energyText;
@@ -70,9 +117,65 @@ class FishInspector {
         panel.addControl(stateText);
         this.stateText = stateText;
 
-        // Initially hide the panel
-        panel.isVisible = false;
-        this.panel = panel;
+        console.log("Fish Inspector UI setup complete");
+    }
+
+    toggleFishList() {
+        this.isListExpanded = !this.isListExpanded;
+        console.log("Fish list toggled:", this.isListExpanded ? "expanded" : "collapsed");
+        
+        // Update button text
+        this.toggleButtonText.text = this.isListExpanded ? "Hide Fish List" : "Show Fish List";
+        
+        // Show/hide and update fish list
+        this.fishListPanel.isVisible = this.isListExpanded;
+        if (this.isListExpanded) {
+            this.updateFishList();
+        }
+    }
+
+    updateFishList() {
+        // Clear existing list
+        this.fishListPanel.children.slice().forEach(child => {
+            this.fishListPanel.removeControl(child);
+        });
+
+        // Get all fish from the entity handler
+        const entityHandler = this.sceneInstance.entityHandler;
+        if (!entityHandler || !entityHandler.fishManager) return;
+        
+        const fishes = entityHandler.fishManager.getFish() || [];
+        
+        // Calculate total height needed
+        const buttonHeight = 30;
+        const totalHeight = (fishes.length * (buttonHeight + 5)) + 20; // 5px spacing, 20px padding
+        this.fishListPanel.height = `${totalHeight}px`;
+
+        // Add a button for each fish
+        fishes.forEach((fish, index) => {
+            const button = new BABYLON.GUI.Button();
+            button.name = `fish_button_${fish.id}`;
+            button.width = "160px";
+            button.height = `${buttonHeight}px`;
+            button.color = "white";
+            button.cornerRadius = 5;
+            button.background = this.selectedFish === fish ? "#5e9ca9" : "#407080";
+            button.thickness = 1;
+
+            const buttonText = new BABYLON.GUI.TextBlock();
+            buttonText.text = `Fish ${fish.id}\nEnergy: ${Math.round(fish.energy * 100)}%`;
+            buttonText.color = "white";
+            buttonText.fontSize = 14;
+            button.addControl(buttonText);
+
+            // Add click handler
+            button.onPointerClickObservable.add(() => {
+                this.selectFish(fish);
+                this.updateFishList(); // Refresh list to update selection highlighting
+            });
+
+            this.fishListPanel.addControl(button);
+        });
     }
 
     setupHighlight() {
@@ -124,9 +227,14 @@ class FishInspector {
     }
 
     selectFish(fish) {
+        console.log("Selecting fish:", fish.id);
         this.selectedFish = fish;
-        this.panel.isVisible = true;
         this.highlightMesh.isVisible = true;
+        
+        // Update fish list if expanded
+        if (this.isListExpanded) {
+            this.updateFishList();
+        }
         
         // Start updating the inspector
         if (!this._updateLoop) {
@@ -136,9 +244,13 @@ class FishInspector {
     }
 
     clearSelection() {
+        console.log("Clearing fish selection");
         this.selectedFish = null;
-        this.panel.isVisible = false;
         this.highlightMesh.isVisible = false;
+        
+        // Reset display texts
+        this.energyText.text = "Energy: --";
+        this.stateText.text = "State: None";
         
         // Stop updating the inspector
         if (this._updateLoop) {
@@ -175,6 +287,11 @@ class FishInspector {
             material.emissiveColor.set(1, 1, 0); // Yellow when has food target
         } else {
             material.emissiveColor.set(0, 1, 0); // Green for normal state
+        }
+
+        // Update fish list periodically if expanded
+        if (this.isListExpanded && this.frameCount % 30 === 0) {
+            this.updateFishList();
         }
     }
 

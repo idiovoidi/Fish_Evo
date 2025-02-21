@@ -9,7 +9,7 @@ class Scene {
         this.dayNightCycle = null;
         this.coralManager = null;
         this.debrisManager = null;
-        this.sharkManager = null;
+        this.sharkHandler = null;
         this.foodSpawner = null;
         this.frameCount = 0;
         this.fpsDisplay = null;
@@ -106,9 +106,24 @@ class Scene {
             console.log("Creating ocean debris");
             this.debrisManager = new DebrisManager(this.scene, this.landscape);
 
-            // Initialize shark
-            console.log("Creating shark");
-            this.sharkManager = new SharkManager(this.scene);
+            // Initialize shark after landscape
+            console.log("Creating shark handler");
+            this.sharkHandler = new SharkHandler(this.scene, this.landscape);
+
+            // Verify shark creation
+            if (this.sharkHandler && this.sharkHandler.sharks.length > 0) {
+                console.log("Shark created successfully");
+                
+                // Add shark to shadow casters immediately after creation
+                this.sharkHandler.sharks.forEach(shark => {
+                    if (shark.mesh) {
+                        console.log("Adding shark to shadow casters");
+                        this.dayNightCycle.addShadowCaster(shark.mesh);
+                    }
+                });
+            } else {
+                console.error("Failed to create shark!");
+            }
 
             // Initialize entity handler
             console.log("Initializing entities");
@@ -120,15 +135,6 @@ class Scene {
                 this.entityHandler.crabManager.crabs.forEach(crab => {
                     if (crab.renderComponent) {
                         this.dayNightCycle.addShadowCaster(crab.renderComponent);
-                    }
-                });
-            }
-
-            // Register shark for shadows
-            if (this.sharkManager) {
-                this.sharkManager.sharks.forEach(shark => {
-                    if (shark.mesh) {
-                        this.dayNightCycle.addShadowCaster(shark.mesh);
                     }
                 });
             }
@@ -173,8 +179,13 @@ class Scene {
                     this.entityHandler.update();
                 }
                 
-                if (this.sharkManager && this.frameCount % SimulationConfig.entities.fish.updateInterval === 0) {
-                    this.sharkManager.update();
+                // Update shark handler
+                if (this.sharkHandler) {
+                    if (this.frameCount % SimulationConfig.entities.fish.updateInterval === 0) {
+                        this.sharkHandler.update();
+                    }
+                } else {
+                    console.warn("SharkHandler not initialized");
                 }
 
                 // Update food spawner
