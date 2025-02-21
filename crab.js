@@ -49,7 +49,10 @@ class Crab extends YUKA.Vehicle {
             return super.update(delta);
         }
 
-        // Get current ground height
+        // First do the standard YUKA update to get new x,z position
+        super.update(delta);
+
+        // Then adjust height to match terrain
         const groundY = this.landscape.getHeightAtPoint(this.position.x, this.position.z);
         this.position.y = groundY + SimulationConfig.entities.crabs.spawnHeight;
 
@@ -75,8 +78,6 @@ class Crab extends YUKA.Vehicle {
             wander.weight = 0.5;
             this.steering.add(wander);
         }
-
-        return super.update(delta);
     }
 }
 
@@ -174,7 +175,7 @@ class CrabManager {
                     
                     spawnPos = new BABYLON.Vector3(
                         x,
-                        groundY + SimulationConfig.entities.crabs.spawnHeight + 2, // Start higher for physics
+                        groundY + SimulationConfig.entities.crabs.spawnHeight, // Only add the configured spawn height
                         z
                     );
 
@@ -195,7 +196,6 @@ class CrabManager {
                 crab.position.set(spawnPos.x, spawnPos.y, spawnPos.z);
                 crab.rotation.fromEuler(0, Math.random() * Math.PI * 2, 0);
                 crab.velocity = new YUKA.Vector3(0, 0, 0);
-                crab.isGrounded = false;
 
                 const crabMesh = CrabMeshCreator.createMesh(this.scene);
                 crabMesh.position.set(spawnPos.x, spawnPos.y, spawnPos.z);

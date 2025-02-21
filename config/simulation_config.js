@@ -3,7 +3,7 @@ const SimulationConfig = {
     entities: {
         crabs: {
             count: 10,
-            spawnHeight: 0.5,
+            spawnHeight: 0.1,
             maxSpeed: 2,
             maxForce: 0.5,
             neighborhoodRadius: 5,
