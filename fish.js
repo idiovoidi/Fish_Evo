@@ -16,25 +16,46 @@ class Action {
 class SeekFoodBehavior extends YUKA.SteeringBehavior {
     constructor() {
         super();
-        this.weight = 3; // Higher priority than schooling
+        this.weight = 5; // Increased from 3 to 5 to make food seeking higher priority
         this.target = null;
+        this._lastSearchTime = 0;
+        this._searchInterval = 500; // Search for food every 500ms
     }
 
     calculate(vehicle, force) {
+        // Periodically search for food if we don't have a target
+        const now = performance.now();
+        if (!this.target && now - this._lastSearchTime > this._searchInterval) {
+            this._lastSearchTime = now;
+            vehicle.findFood();
+        }
+        
         if (!this.target) return force;
         
+        // Check if target still exists
+        if (!vehicle.scene.foodSpawner?.foodParticles.includes(this.target)) {
+            this.target = null;
+            vehicle.state.hasFood = false;
+            return force;
+        }
+        
         const direction = new YUKA.Vector3();
-        direction.subVectors(this.target.position, vehicle.position);
+        const targetPosition = new YUKA.Vector3(
+            this.target.position.x,
+            this.target.position.y,
+            this.target.position.z
+        );
+        direction.subVectors(targetPosition, vehicle.position);
         
         // If close enough to eat
-        if (direction.length() < 1) {
+        if (direction.length() < 1.5) { // Increased from 1 to 1.5 for easier eating
             vehicle.eatFood(this.target);
             this.target = null;
             return force;
         }
         
         direction.normalize();
-        direction.multiplyScalar(vehicle.maxSpeed);
+        direction.multiplyScalar(vehicle.maxSpeed * 1.2); // Boost speed when seeking food
         force.add(direction);
         return force;
     }
@@ -217,7 +238,8 @@ class Fish extends YUKA.Vehicle {
         const dt = now - this.lastEnergyUpdate;
         
         if (dt > 1000) { // Update every second
-            this.energy = Math.max(0, this.energy - 0.05);
+            // Reduced energy consumption rate from 0.05 to 0.02
+            this.energy = Math.max(0, this.energy - 0.02);
             this.lastEnergyUpdate = now;
             
             // Check for death by starvation
@@ -231,8 +253,10 @@ class Fish extends YUKA.Vehicle {
         const now = performance.now();
         if (now - this.lastStateUpdate < this.stateUpdateInterval) return;
 
-        this.state.isHungry = this.energy < 0.5;
-        this.state.isResting = this.energy < 0.2;
+        // Changed hunger threshold from 0.5 to 0.7 to make fish look for food sooner
+        this.state.isHungry = this.energy < 0.7;
+        // Changed resting threshold from 0.2 to 0.3
+        this.state.isResting = this.energy < 0.3;
         
         // Check for nearby threats (can be expanded)
         this.state.isSafe = true; // Implement threat detection logic
@@ -275,7 +299,8 @@ class Fish extends YUKA.Vehicle {
     }
 
     findFood() {
-        if (this.seekFoodBehavior.target) return; // Already seeking food
+        // If already seeking food or not hungry, don't look for more food
+        if (this.seekFoodBehavior.target || !this.state.isHungry) return;
         
         const foodParticles = this.scene.foodSpawner?.foodParticles || [];
         if (foodParticles.length === 0) return;
@@ -283,27 +308,40 @@ class Fish extends YUKA.Vehicle {
         // Find nearest food
         let nearestFood = null;
         let nearestDistance = Infinity;
+        
+        // Increased search radius from infinity to 30 units
+        const MAX_SEARCH_DISTANCE = 30;
 
         for (const food of foodParticles) {
             const distance = BABYLON.Vector3.Distance(
                 this.position.toArray(),
                 food.position
             );
-            if (distance < nearestDistance) {
+            
+            // Only consider food within reasonable distance
+            if (distance < nearestDistance && distance < MAX_SEARCH_DISTANCE) {
                 nearestDistance = distance;
                 nearestFood = food;
             }
         }
 
         if (nearestFood) {
+            console.log(`Fish ${this.id} found food at distance ${nearestDistance}`);
             this.seekFoodBehavior.target = nearestFood;
             this.seekFoodBehavior.active = true;
             this.state.hasFood = true;
             
-            // Temporarily reduce other behavior weights
+            // Temporarily reduce other behavior weights more significantly
             this.steering.behaviors.forEach(behavior => {
                 if (!(behavior instanceof SeekFoodBehavior)) {
-                    behavior.weight *= 0.5;
+                    behavior.weight *= 0.3; // Reduced from 0.5 to 0.3
+                }
+            });
+        } else if (this.energy < 0.4) {
+            // If very hungry and no food found, increase wander behavior to look harder
+            this.steering.behaviors.forEach(behavior => {
+                if (behavior instanceof YUKA.WanderBehavior) {
+                    behavior.weight *= 2;
                 }
             });
         }
@@ -317,21 +355,114 @@ class Fish extends YUKA.Vehicle {
 
         // Remove food from scene
         this.scene.foodSpawner.foodParticles.splice(index, 1);
-        food.dispose();
+        if (!food.isDisposed()) {
+            food.dispose();
+        }
 
         // Reset food seeking
         this.seekFoodBehavior.active = false;
         this.state.hasFood = false;
         
-        // Restore energy
-        this.energy = Math.min(1.0, this.energy + 0.3);
+        // Calculate energy restoration based on fish ID
+        const previousEnergy = this.energy;
+        const idNumber = parseInt(this.id.split('_')[1]); // Extract number from "fish_X"
         
-        // Restore original behavior weights
+        // Create unique energy restoration value between 0.4 and 0.7
+        // Using a seeded random based on fish ID for consistency
+        const baseEnergy = 0.4;
+        const energyVariation = 0.3;
+        const uniqueEnergyMultiplier = (Math.sin(idNumber * 12345) + 1) / 2; // Creates value between 0 and 1
+        const energyRestoration = baseEnergy + (uniqueEnergyMultiplier * energyVariation);
+        
+        // Apply energy restoration with unique value
+        this.energy = Math.min(1.0, this.energy + energyRestoration);
+        
+        // Visual feedback color based on energy restoration amount
+        const renderComponent = this.renderComponent;
+        if (renderComponent && renderComponent.material) {
+            // Store original color
+            const originalColor = renderComponent.material.diffuseColor.clone();
+            
+            // Color intensity based on energy restoration (more green for higher restoration)
+            const greenIntensity = 0.3 + (energyRestoration - baseEnergy) / energyVariation;
+            renderComponent.material.diffuseColor = new BABYLON.Color3(0.2, greenIntensity, 0.2);
+            renderComponent.material.emissiveColor = new BABYLON.Color3(0, greenIntensity * 0.5, 0);
+            
+            // Show energy gain value as text
+            if (this.scene) {
+                try {
+                    const gainText = new BABYLON.GUI.TextBlock();
+                    gainText.text = `+${Math.round(energyRestoration * 100)}%`;
+                    gainText.color = "white";
+                    gainText.fontSize = 14;
+                    gainText.alpha = 1;
+                    
+                    const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+                    advancedTexture.addControl(gainText);
+                    
+                    // Position text above fish
+                    const screenPos = BABYLON.Vector3.Project(
+                        this.position.toArray(),
+                        BABYLON.Matrix.Identity(),
+                        this.scene.getTransformMatrix(),
+                        this.scene.activeCamera.viewport.toGlobal(
+                            this.scene.getEngine().getRenderWidth(),
+                            this.scene.getEngine().getRenderHeight()
+                        )
+                    );
+                    
+                    gainText.left = screenPos.x - 20;
+                    gainText.top = screenPos.y - 40;
+                    
+                    // Animate and remove text
+                    let alpha = 1;
+                    const fadeInterval = setInterval(() => {
+                        alpha -= 0.05;
+                        gainText.alpha = alpha;
+                        gainText.top -= 1; // Float upward
+                        
+                        if (alpha <= 0) {
+                            clearInterval(fadeInterval);
+                            advancedTexture.removeControl(gainText);
+                            advancedTexture.dispose();
+                        }
+                    }, 50);
+                } catch (e) {
+                    console.log("Error showing energy gain text:", e);
+                }
+            }
+            
+            // Restore original color after 300ms
+            setTimeout(() => {
+                renderComponent.material.diffuseColor = originalColor;
+                renderComponent.material.emissiveColor = new BABYLON.Color3(0, 0, 0);
+            }, 300);
+        }
+        
+        // Speed boost based on energy gain
+        if (previousEnergy < 0.2 && this.energy > 0.5) {
+            const originalSpeed = this.maxSpeed;
+            const speedBoost = 1.3 + (uniqueEnergyMultiplier * 0.4); // Speed boost varies between 1.3x and 1.7x
+            this.maxSpeed *= speedBoost;
+            
+            setTimeout(() => {
+                this.maxSpeed = originalSpeed;
+            }, 1000);
+        }
+        
+        // Restore behavior weights with unique transition
+        const transitionTime = 800 + (uniqueEnergyMultiplier * 400); // Between 800ms and 1200ms
         this.steering.behaviors.forEach(behavior => {
             if (!(behavior instanceof SeekFoodBehavior)) {
-                behavior.weight *= 2;
+                behavior.weight *= 1.5;
+                setTimeout(() => {
+                    behavior.weight = behavior.weight / 1.5;
+                }, transitionTime);
             }
         });
+        
+        // Log energy gain for debugging
+        console.log(`Fish ${this.id} restored ${Math.round(energyRestoration * 100)}% energy`);
     }
 
     rest() {

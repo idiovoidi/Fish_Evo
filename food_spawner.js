@@ -3,13 +3,17 @@ class FoodSpawner {
         this.scene = scene;
         this.landscape = landscape;
         this.foodParticles = [];
-        this.maxFoodParticles = SimulationConfig.food.maxParticles;
-        this.spawnInterval = SimulationConfig.food.spawnInterval;
+        this.maxFoodParticles = 80;
+        this.spawnInterval = 500;
         this.lastSpawnTime = 0;
+        this.debugMode = false;
         
         // Create food particle system
         this.particleSystem = new BABYLON.ParticleSystem("foodParticles", 2000, this.scene);
         this.setupParticleSystem();
+        
+        // Initial food spawn
+        this.initialFoodSpawn();
     }
 
     setupParticleSystem() {
@@ -27,7 +31,7 @@ class FoodSpawner {
         this.particleSystem.maxLifeTime = 12;
         
         // Emission
-        this.particleSystem.emitRate = 10;
+        this.particleSystem.emitRate = 15;
         this.particleSystem.minEmitBox = new BABYLON.Vector3(-20, 15, -20);
         this.particleSystem.maxEmitBox = new BABYLON.Vector3(20, 15, 20);
         
@@ -79,6 +83,25 @@ class FoodSpawner {
         setInterval(() => collisionCache.clear(), 5000);
     }
 
+    initialFoodSpawn() {
+        // Spawn initial food particles to ensure fish have food at start
+        const initialCount = Math.min(30, this.maxFoodParticles);
+        
+        for (let i = 0; i < initialCount; i++) {
+            const position = new BABYLON.Vector3(
+                (Math.random() - 0.5) * 40,
+                0.5 + Math.random() * 5, // Spawn at various depths
+                (Math.random() - 0.5) * 40
+            );
+            
+            this.createFood(position);
+        }
+        
+        if (this.debugMode) {
+            console.log(`Initially spawned ${initialCount} food particles`);
+        }
+    }
+
     createFood(position) {
         // Remove oldest food if at max capacity
         while (this.foodParticles.length >= this.maxFoodParticles) {
@@ -87,8 +110,46 @@ class FoodSpawner {
         }
 
         // Create new food instance
-        const food = new Food(this.scene, position);
+        const food = BABYLON.MeshBuilder.CreateSphere("food", {
+            diameter: 0.3,
+            segments: 8
+        }, this.scene);
+        
+        // Position food
+        food.position = position.clone();
+        
+        // Create glowing material
+        const foodMaterial = new BABYLON.StandardMaterial("foodMaterial", this.scene);
+        foodMaterial.emissiveColor = new BABYLON.Color3(0.7, 0.6, 0.3);
+        foodMaterial.alpha = 0.8;
+        food.material = foodMaterial;
+        
+        // Add glow layer if not exists
+        if (!this.scene.glowLayer) {
+            this.scene.glowLayer = new BABYLON.GlowLayer("foodGlow", this.scene, {
+                mainTextureFixedSize: 512,
+                blurKernelSize: 32
+            });
+        }
+        this.scene.glowLayer.addIncludedOnlyMesh(food);
+        
+        // Add to tracking array
         this.foodParticles.push(food);
+        
+        // Add subtle animation
+        const amplitude = 0.1;
+        const frequency = 1;
+        const observer = this.scene.onBeforeRenderObservable.add(() => {
+            if (food.isDisposed()) {
+                this.scene.onBeforeRenderObservable.remove(observer);
+                return;
+            }
+            food.position.y += Math.sin(performance.now() * 0.001) * amplitude * frequency * 0.01;
+        });
+        
+        if (this.debugMode) {
+            console.log(`Food created at position (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
+        }
     }
 
     update() {
@@ -103,24 +164,47 @@ class FoodSpawner {
                 const hour = this.scene.dayNightCycle.getCurrentHour();
                 // Spawn more food during day (6-18) than night
                 this.particleSystem.emitRate = (hour >= 6 && hour <= 18) ? 
-                    SimulationConfig.food.daySpawnRate / 60 : 
-                    SimulationConfig.food.nightSpawnRate / 60;
+                    25 / 60 : 
+                    10 / 60;
+            }
+            
+            // Emergency food spawn if running low
+            if (this.foodParticles.length < 10) {
+                const position = new BABYLON.Vector3(
+                    (Math.random() - 0.5) * 40,
+                    0.5 + Math.random() * 5,
+                    (Math.random() - 0.5) * 40
+                );
+                this.createFood(position);
+                
+                if (this.debugMode) {
+                    console.log(`Emergency food spawn. Current count: ${this.foodParticles.length}`);
+                }
             }
         }
 
-        // Clean up expired food
-        this.foodParticles = this.foodParticles.filter(food => {
-            if (food.isExpired()) {
-                food.dispose();
-                return false;
+        // Clean up expired food - removed expiration check since we're using meshes
+        // Instead, we'll maintain a maximum count
+        while (this.foodParticles.length > this.maxFoodParticles) {
+            const oldestFood = this.foodParticles.shift();
+            if (!oldestFood.isDisposed()) {
+                oldestFood.dispose();
             }
-            return true;
-        });
+        }
+        
+        // Log food count periodically for debugging
+        if (this.debugMode && currentTime % 5000 < 20) {
+            console.log(`Current food count: ${this.foodParticles.length}`);
+        }
     }
 
     dispose() {
         this.particleSystem.dispose();
-        this.foodParticles.forEach(food => food.dispose());
+        this.foodParticles.forEach(food => {
+            if (!food.isDisposed()) {
+                food.dispose();
+            }
+        });
         this.foodParticles = [];
     }
 } 
