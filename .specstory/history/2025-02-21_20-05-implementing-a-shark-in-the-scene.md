@@ -3146,7 +3146,621 @@ _****_
 
 _****_
 
-Let
+Let me check the energy consumption rate and food spawning to understand why fish are dying too quickly:
+
+---
+
+_****_
+
+<details>
+            <summary>Searched codebase "updateEnergy method and energy consumption in fish.js" • **22** results</summary>
+        
+| File | Lines |
+|------|-------|
+| `fish.js` | L213-228 |
+| `fish.js` | L213-228 |
+| `fish.js` | L377-422 |
+| `fish.js` | L377-422 |
+| `fish.js` | L310-341 |
+| `fish.js` | L310-341 |
+| `fish.js` | L67-100 |
+| `fish.js` | L67-100 |
+| `fish.js` | L171-213 |
+| `fish.js` | L171-213 |
+| `fish.js` | L341-377 |
+| `fish.js` | L341-377 |
+| `fish.js` | L228-246 |
+| `fish.js` | L228-246 |
+| `fish.js` | L100-138 |
+| `fish.js` | L100-138 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L2015-2084 |
+| `inspector.js` | L260-296 |
+| `food.js` | L1-12 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L3685-3753 |
+| `.specstory/history/2025-02-21_20-05-implementing-a-shark-in-the-scene.md` | L1507-1560 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L2243-2361 |
+
+</details>
+
+---
+
+_****_
+
+Now let me check the food spawning system:
+
+---
+
+_****_
+
+<details>
+            <summary>Searched codebase "FoodSpawner class" • **18** results</summary>
+        
+| File | Lines |
+|------|-------|
+| `food_spawner.js` | L1-13 |
+| `food_spawner.js` | L92-119 |
+| `food_spawner.js` | L80-92 |
+| `food_spawner.js` | L119-125 |
+| `food_spawner.js` | L54-80 |
+| `food_spawner.js` | L125-126 |
+| `food_spawner.js` | L13-54 |
+| `food.js` | L1-12 |
+| `.specstory/history/2025-02-21_18-06-improving-codebase-performance-strategies.md` | L463-510 |
+| `fish.js` | L310-341 |
+| `fish.js` | L310-341 |
+| `config/simulation_config.js` | L1-56 |
+| `food.js` | L12-17 |
+| `fish.js` | L275-310 |
+| `fish.js` | L275-310 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L3324-3469 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L2243-2361 |
+| `food.js` | L17-46 |
+
+</details>
+
+---
+
+_****_
+
+Let me check the simulation configuration to understand the food spawning settings:
+
+---
+
+_****_
+
+<details>
+            <summary>Searched codebase "SimulationConfig food settings" • **22** results</summary>
+        
+| File | Lines |
+|------|-------|
+| `config/simulation_config.js` | L1-56 |
+| `food_spawner.js` | L1-13 |
+| `food.js` | L12-17 |
+| `food_spawner.js` | L92-119 |
+| `food_spawner.js` | L13-54 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L4435-4497 |
+| `food.js` | L1-12 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L3324-3469 |
+| `food.js` | L17-46 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L3469-3524 |
+| `fish.js` | L275-310 |
+| `fish.js` | L275-310 |
+| `fish.js` | L13-41 |
+| `fish.js` | L13-41 |
+| `food_spawner.js` | L54-80 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L3524-3613 |
+| `core/Scene.js` | L171-217 |
+| `fish.js` | L310-341 |
+| `fish.js` | L310-341 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L2243-2361 |
+| `.specstory/history/2025-02-21_20-05-implementing-a-shark-in-the-scene.md` | L1440-1507 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L4557-4624 |
+
+</details>
+
+---
+
+_****_
+
+Let me check the updateState method to understand how fish decide to look for food:
+
+---
+
+_****_
+
+<details>
+            <summary>Searched codebase "updateState method in Fish class" • **25** results</summary>
+        
+| File | Lines |
+|------|-------|
+| `fish.js` | L228-246 |
+| `fish.js` | L228-246 |
+| `fish.js` | L67-100 |
+| `fish.js` | L67-100 |
+| `fish.js` | L171-213 |
+| `fish.js` | L171-213 |
+| `inspector.js` | L260-296 |
+| `fish.js` | L468-499 |
+| `fish.js` | L468-499 |
+| `fish.js` | L213-228 |
+| `fish.js` | L213-228 |
+| `fish.js` | L692-697 |
+| `fish.js` | L692-697 |
+| `fish.js` | L100-138 |
+| `fish.js` | L100-138 |
+| `inspector.js` | L113-121 |
+| `.specstory/history/2025-02-21_19-48-fish-brain-file-creation.md` | L194-337 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L4435-4497 |
+| `fish.js` | L507-538 |
+| `fish.js` | L507-538 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L3685-3753 |
+| `fish.js` | L246-275 |
+| `fish.js` | L246-275 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L2015-2084 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L2499-2684 |
+
+</details>
+
+---
+
+_****_
+
+Let me check the initialization of the fish behaviors:
+
+---
+
+_****_
+
+<details>
+            <summary>Searched codebase "fish initialization and behaviors setup" • **25** results</summary>
+        
+| File | Lines |
+|------|-------|
+| `fish.js` | L100-138 |
+| `fish.js` | L100-138 |
+| `fish.js` | L584-631 |
+| `fish.js` | L584-631 |
+| `fish.js` | L138-171 |
+| `fish.js` | L138-171 |
+| `.specstory/history/2025-02-21_19-48-fish-brain-file-creation.md` | L194-337 |
+| `fish.js` | L171-213 |
+| `fish.js` | L171-213 |
+| `fish.js` | L468-499 |
+| `fish.js` | L468-499 |
+| `fish.js` | L67-100 |
+| `fish.js` | L67-100 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L2243-2361 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L4176-4256 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L4435-4497 |
+| `fish.js` | L422-427 |
+| `fish.js` | L422-427 |
+| `.specstory/history/2025-02-21_18-06-codebase-analysis-for-performance-improvement.md` | L3685-3753 |
+| `fish.js` | L507-538 |
+| `fish.js` | L507-538 |
+| `fish.js` | L228-246 |
+| `fish.js` | L228-246 |
+| `fish.js` | L246-275 |
+| `fish.js` | L246-275 |
+
+</details>
+
+---
+
+_****_
+
+Based on my analysis, I've identified several issues that are causing fish to die quickly without eating food:
+
+1. The fish are not effectively finding or targeting food
+2. The energy consumption rate is too high
+3. The food spawning rate might be too low
+4. There may be issues with the food seeking behavior
+
+Let me implement a comprehensive fix:
+
+---
+
+_****_
+
+```diff
+      constructor() {
+          super();
+-         this.weight = 3; // Higher priority than schooling
++         this.weight = 5; // Increased from 3 to 5 to make food seeking higher priority
+          this.target = null;
++         this._lastSearchTime = 0;
++         this._searchInterval = 500; // Search for food every 500ms
+      }
+  
+      calculate(vehicle, force) {
++         // Periodically search for food if we don't have a target
++         const now = performance.now();
++         if (!this.target && now - this._lastSearchTime > this._searchInterval) {
++             this._lastSearchTime = now;
++             vehicle.findFood();
++         }
++         
+          if (!this.target) return force;
++         
++         // Check if target still exists
++         if (!vehicle.scene.foodSpawner?.foodParticles.includes(this.target)) {
++             this.target = null;
++             vehicle.state.hasFood = false;
++             return force;
++         }
+          
+          const direction = new YUKA.Vector3();
+          direction.subVectors(this.target.position, vehicle.position);
+          
+          // If close enough to eat
+-         if (direction.length() < 1) {
++         if (direction.length() < 1.5) { // Increased from 1 to 1.5 for easier eating
+              vehicle.eatFood(this.target);
+              this.target = null;
+          
+          direction.normalize();
+-         direction.multiplyScalar(vehicle.maxSpeed);
++         direction.multiplyScalar(vehicle.maxSpeed * 1.2); // Boost speed when seeking food
+          force.add(direction);
+          return force;
+          
+          if (dt > 1000) { // Update every second
+-             this.energy = Math.max(0, this.energy - 0.05);
++             // Reduced energy consumption rate from 0.05 to 0.02
++             this.energy = Math.max(0, this.energy - 0.02);
+              this.lastEnergyUpdate = now;
+              
+          if (now - this.lastStateUpdate < this.stateUpdateInterval) return;
+  
+-         this.state.isHungry = this.energy < 0.5;
+-         this.state.isResting = this.energy < 0.2;
++         // Changed hunger threshold from 0.5 to 0.7 to make fish look for food sooner
++         this.state.isHungry = this.energy < 0.7;
++         // Changed resting threshold from 0.2 to 0.3
++         this.state.isResting = this.energy < 0.3;
+          
+          // Check for nearby threats (can be expanded)
+  
+      findFood() {
+-         if (this.seekFoodBehavior.target) return; // Already seeking food
++         // If already seeking food or not hungry, don't look for more food
++         if (this.seekFoodBehavior.target || !this.state.isHungry) return;
+          
+          const foodParticles = this.scene.foodSpawner?.foodParticles || [];
+          let nearestFood = null;
+          let nearestDistance = Infinity;
++         
++         // Increased search radius from infinity to 30 units
++         const MAX_SEARCH_DISTANCE = 30;
+  
+          for (const food of foodParticles) {
+                  food.position
+              );
+-             if (distance < nearestDistance) {
++             
++             // Only consider food within reasonable distance
++             if (distance < nearestDistance && distance < MAX_SEARCH_DISTANCE) {
+                  nearestDistance = distance;
+                  nearestFood = food;
+  
+          if (nearestFood) {
++             console.log(`Fish ${this.id} found food at distance ${nearestDistance}`);
+              this.seekFoodBehavior.target = nearestFood;
+              this.seekFoodBehavior.active = true;
+              this.state.hasFood = true;
+              
+-             // Temporarily reduce other behavior weights
++             // Temporarily reduce other behavior weights more significantly
+              this.steering.behaviors.forEach(behavior => {
+                  if (!(behavior instanceof SeekFoodBehavior)) {
+-                     behavior.weight *= 0.5;
++                     behavior.weight *= 0.3; // Reduced from 0.5 to 0.3
++                 }
++             });
++         } else if (this.energy < 0.4) {
++             // If very hungry and no food found, increase wander behavior to look harder
++             this.steering.behaviors.forEach(behavior => {
++                 if (behavior instanceof YUKA.WanderBehavior) {
++                     behavior.weight *= 2;
+                  }
+              });
+```
+
+---
+
+_****_
+
+Now let's improve the food spawning system to ensure there's enough food available:
+
+---
+
+_****_
+
+```diff
+          this.landscape = landscape;
+          this.foodParticles = [];
+-         this.maxFoodParticles = SimulationConfig.food.maxParticles;
+-         this.spawnInterval = SimulationConfig.food.spawnInterval;
++         this.maxFoodParticles = 80;
++         this.spawnInterval = 500;
+          this.lastSpawnTime = 0;
++         this.debugMode = false;
+          
+          // Create food particle system
+          this.particleSystem = new BABYLON.ParticleSystem("foodParticles", 2000, this.scene);
+          this.setupParticleSystem();
++         
++         // Initial food spawn
++         this.initialFoodSpawn();
+      }
+  
+          
+          // Emission
+-         this.particleSystem.emitRate = 10;
++         this.particleSystem.emitRate = 15;
+          this.particleSystem.minEmitBox = new BABYLON.Vector3(-20, 15, -20);
+          this.particleSystem.maxEmitBox = new BABYLON.Vector3(20, 15, 20);
+          setInterval(() => collisionCache.clear(), 5000);
+      }
++ 
++     initialFoodSpawn() {
++         // Spawn initial food particles to ensure fish have food at start
++         const initialCount = Math.min(30, this.maxFoodParticles);
++         
++         for (let i = 0; i < initialCount; i++) {
++             const position = new BABYLON.Vector3(
++                 (Math.random() - 0.5) * 40,
++                 0.5 + Math.random() * 5, // Spawn at various depths
++                 (Math.random() - 0.5) * 40
++             );
++             
++             this.createFood(position);
++         }
++         
++         if (this.debugMode) {
++             console.log(`Initially spawned ${initialCount} food particles`);
++         }
++     }
+  
+      createFood(position) {
+  
+          // Create new food instance
+-         const food = new Food(this.scene, position);
++         const food = BABYLON.MeshBuilder.CreateSphere("food", {
++             diameter: 0.3,
++             segments: 8
++         }, this.scene);
++         
++         // Position food
++         food.position = position.clone();
++         
++         // Create glowing material
++         const foodMaterial = new BABYLON.StandardMaterial("foodMaterial", this.scene);
++         foodMaterial.emissiveColor = new BABYLON.Color3(0.7, 0.6, 0.3);
++         foodMaterial.alpha = 0.8;
++         food.material = foodMaterial;
++         
++         // Add glow layer if not exists
++         if (!this.scene.glowLayer) {
++             this.scene.glowLayer = new BABYLON.GlowLayer("foodGlow", this.scene, {
++                 mainTextureFixedSize: 512,
++                 blurKernelSize: 32
++             });
++         }
++         this.scene.glowLayer.addIncludedOnlyMesh(food);
++         
++         // Add to tracking array
+          this.foodParticles.push(food);
++         
++         // Add subtle animation
++         const amplitude = 0.1;
++         const frequency = 1;
++         const observer = this.scene.onBeforeRenderObservable.add(() => {
++             if (food.isDisposed()) {
++                 this.scene.onBeforeRenderObservable.remove(observer);
++                 return;
++             }
++             food.position.y += Math.sin(performance.now() * 0.001) * amplitude * frequency * 0.01;
++         });
++         
++         if (this.debugMode) {
++             console.log(`Food created at position (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
++         }
+      }
+  
+                  // Spawn more food during day (6-18) than night
+                  this.particleSystem.emitRate = (hour >= 6 && hour <= 18) ? 
+-                     SimulationConfig.food.daySpawnRate / 60 : 
+-                     SimulationConfig.food.nightSpawnRate / 60;
++                     25 / 60 : 
++                     10 / 60;
++             }
++             
++             // Emergency food spawn if running low
++             if (this.foodParticles.length < 10) {
++                 const position = new BABYLON.Vector3(
++                     (Math.random() - 0.5) * 40,
++                     0.5 + Math.random() * 5,
++                     (Math.random() - 0.5) * 40
++                 );
++                 this.createFood(position);
++                 
++                 if (this.debugMode) {
++                     console.log(`Emergency food spawn. Current count: ${this.foodParticles.length}`);
++                 }
+              }
+          }
+  
+-         // Clean up expired food
+-         this.foodParticles = this.foodParticles.filter(food => {
+-             if (food.isExpired()) {
+-                 food.dispose();
+-                 return false;
+-             }
+-             return true;
+-         });
++         // Clean up expired food - removed expiration check since we're using meshes
++         // Instead, we'll maintain a maximum count
++         while (this.foodParticles.length > this.maxFoodParticles) {
++             const oldestFood = this.foodParticles.shift();
++             if (!oldestFood.isDisposed()) {
++                 oldestFood.dispose();
++             }
++         }
++         
++         // Log food count periodically for debugging
++         if (this.debugMode && currentTime % 5000 < 20) {
++             console.log(`Current food count: ${this.foodParticles.length}`);
++         }
+      }
+  
+      dispose() {
+          this.particleSystem.dispose();
+-         this.foodParticles.forEach(food => food.dispose());
++         this.foodParticles.forEach(food => {
++             if (!food.isDisposed()) {
++                 food.dispose();
++             }
++         });
+          this.foodParticles = [];
+      }
+```
+
+---
+
+_****_
+
+Now let's make sure the fish can properly detect and eat the food:
+
+---
+
+_****_
+
+```diff
+          // Remove food from scene
+          this.scene.foodSpawner.foodParticles.splice(index, 1);
++         if (!food.isDisposed()) {
+              food.dispose();
++         }
+  
+          // Reset food seeking
+              // Show energy gain value as text
+              if (this.scene) {
++                 try {
+                      const gainText = new BABYLON.GUI.TextBlock();
+                      gainText.text = `+${Math.round(energyRestoration * 100)}%`;
+                      // Position text above fish
+                      const screenPos = BABYLON.Vector3.Project(
+-                     this.position,
++                         this.position.toArray(),
+                          BABYLON.Matrix.Identity(),
+                          this.scene.getTransformMatrix(),
+                          }
+                      }, 50);
++                 } catch (e) {
++                     console.log("Error showing energy gain text:", e);
++                 }
+              }
+              
+```
+
+---
+
+_****_
+
+Finally, let's update the SeekFoodBehavior to work with the new food implementation:
+
+---
+
+_****_
+
+```diff
+          
+          const direction = new YUKA.Vector3();
+-         direction.subVectors(this.target.position, vehicle.position);
++         const targetPosition = new YUKA.Vector3(
++             this.target.position.x,
++             this.target.position.y,
++             this.target.position.z
++         );
++         direction.subVectors(targetPosition, vehicle.position);
+          
+          // If close enough to eat
+```
+
+---
+
+_****_
+
+I've made several comprehensive improvements to fix the issue with fish not eating and dying too quickly:
+
+1. **Improved Food Seeking Behavior**:
+   - Increased the weight of food seeking from 3 to 5 to make it higher priority
+   - Added automatic food searching every 500ms
+   - Increased the detection range for eating food from 1 to 1.5 units
+   - Added target existence checking to prevent seeking deleted food
+   - Boosted speed by 20% when seeking food
+   - Fixed vector handling for food position
+
+2. **Reduced Energy Consumption**:
+   - Decreased energy consumption rate from 0.05 to 0.02 per second
+   - Changed hunger threshold from 0.5 to 0.7 to make fish look for food sooner
+   - Changed resting threshold from 0.2 to 0.3 for better energy management
+
+3. **Enhanced Food Finding Logic**:
+   - Added a maximum search distance of 30 units for more realistic food detection
+   - Added debug logging to track food finding
+   - Reduced other behavior weights more significantly (to 0.3) when seeking food
+   - Added special behavior for very hungry fish (energy < 0.4) to increase wandering
+
+4. **Improved Food Spawning System**:
+   - Increased maximum food particles from 50 to 80
+   - Reduced spawn interval from 1000ms to 500ms
+   - Increased emission rate from 10 to 15
+   - Added initial food spawn of 30 particles at simulation start
+   - Increased day spawn rate from 15 to 25, night from 5 to 10
+   - Added emergency food spawn when food count drops below 10
+   - Added debug logging for food spawning
+
+5. **Fixed Food Implementation**:
+   - Updated food creation to use direct Babylon.js meshes
+   - Added proper animation and disposal handling
+   - Added error handling for GUI text creation
+   - Fixed vector handling in the SeekFoodBehavior
+
+These changes should significantly improve the fish's ability to find and eat food, while also making them survive longer due to the reduced energy consumption rate. The fish will now:
+
+1. Start with plenty of food available
+2. Look for food earlier (when energy drops below 70%)
+3. Find food more effectively with periodic searching
+4. Consume energy more slowly
+5. Have emergency food spawned if supplies run low
+
+The simulation should now be much more balanced, with fish able to sustain themselves by finding and eating food regularly.
+
+---
+
+_**User**_
+
+Let's fix the missing texture for the food particle, if we can't find a stock texture let's create something that works easily.
+
+GET http://127.0.0.1:5500/textures/food_particle.png 404 (Not Found)
+Image		
+x	@	fileTools.ts:346
+x	@	fileTools.ts:396
+e._createTextureBase	@	abstractEngine.ts:1704
+t.createTexture	@	thinEngine.ts:3094
+t	@	texture.ts:519
+setupParticleSystem	@	food_spawner.js:21
+FoodSpawner	@	food_spawner.js:13
+initialize	@	Scene.js:144
+await in initialize		
+(anonymous)	@	Scene.js:251
+
+---
+
+_**Assistant**_
+
+
 
 ---
 

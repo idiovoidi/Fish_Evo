@@ -17,8 +17,9 @@ class FoodSpawner {
     }
 
     setupParticleSystem() {
-        // Texture
-        this.particleSystem.particleTexture = new BABYLON.Texture("textures/food_particle.png", this.scene);
+        // Create a procedural texture instead of loading an external file
+        const foodTexture = this.createFoodTexture();
+        this.particleSystem.particleTexture = foodTexture;
         
         // Colors
         this.particleSystem.color1 = new BABYLON.Color4(0.7, 0.6, 0.3, 1.0);
@@ -55,6 +56,59 @@ class FoodSpawner {
         
         // Start the particle system
         this.particleSystem.start();
+    }
+
+    createFoodTexture() {
+        // Create a dynamic texture for food particles
+        const size = 64;
+        const texture = new BABYLON.DynamicTexture("foodParticleTexture", size, this.scene, false);
+        const ctx = texture.getContext();
+        
+        // Clear the canvas
+        ctx.clearRect(0, 0, size, size);
+        
+        // Draw a circular gradient (food particle)
+        const centerX = size / 2;
+        const centerY = size / 2;
+        const radius = size / 2 - 4;
+        
+        // Create radial gradient
+        const gradient = ctx.createRadialGradient(
+            centerX, centerY, 0,
+            centerX, centerY, radius
+        );
+        
+        // Add color stops
+        gradient.addColorStop(0, 'rgba(255, 230, 150, 1)');    // Center: light yellow
+        gradient.addColorStop(0.7, 'rgba(200, 170, 50, 0.8)'); // Middle: gold
+        gradient.addColorStop(1, 'rgba(150, 120, 30, 0)');     // Edge: transparent brown
+        
+        // Fill with gradient
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Add some "food particle" details
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        
+        // Add a few small dots
+        for (let i = 0; i < 5; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * radius * 0.6;
+            const dotX = centerX + Math.cos(angle) * distance;
+            const dotY = centerY + Math.sin(angle) * distance;
+            const dotSize = 2 + Math.random() * 3;
+            
+            ctx.beginPath();
+            ctx.arc(dotX, dotY, dotSize, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Update the texture
+        texture.update();
+        
+        return texture;
     }
 
     setupCollisions() {
@@ -106,13 +160,16 @@ class FoodSpawner {
         // Remove oldest food if at max capacity
         while (this.foodParticles.length >= this.maxFoodParticles) {
             const oldestFood = this.foodParticles.shift();
-            oldestFood.dispose();
+            if (!oldestFood.isDisposed()) {
+                oldestFood.dispose();
+            }
         }
 
-        // Create new food instance
-        const food = BABYLON.MeshBuilder.CreateSphere("food", {
-            diameter: 0.3,
-            segments: 8
+        // Create new food instance - using an icosphere for better appearance
+        const food = BABYLON.MeshBuilder.CreateIcoSphere("food", {
+            radius: 0.15,
+            subdivisions: 2,
+            updatable: false
         }, this.scene);
         
         // Position food
@@ -120,8 +177,45 @@ class FoodSpawner {
         
         // Create glowing material
         const foodMaterial = new BABYLON.StandardMaterial("foodMaterial", this.scene);
+        
+        // Create a procedural texture for the food
+        const foodTexture = new BABYLON.DynamicTexture("foodTexture", 128, this.scene, false);
+        const ctx = foodTexture.getContext();
+        
+        // Clear the canvas
+        ctx.clearRect(0, 0, 128, 128);
+        
+        // Create a gradient background
+        const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+        gradient.addColorStop(0, '#ffe696');  // Light yellow center
+        gradient.addColorStop(0.7, '#c8aa32'); // Gold middle
+        gradient.addColorStop(1, '#96781e');   // Brown edge
+        
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 128, 128);
+        
+        // Add some texture details
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        for (let i = 0; i < 12; i++) {
+            const x = Math.random() * 128;
+            const y = Math.random() * 128;
+            const size = 2 + Math.random() * 5;
+            
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Update the texture
+        foodTexture.update();
+        
+        // Apply the texture to the material
+        foodMaterial.diffuseTexture = foodTexture;
         foodMaterial.emissiveColor = new BABYLON.Color3(0.7, 0.6, 0.3);
-        foodMaterial.alpha = 0.8;
+        foodMaterial.specularColor = new BABYLON.Color3(1, 1, 0.8);
+        foodMaterial.alpha = 0.9;
+        
+        // Apply material to the food mesh
         food.material = foodMaterial;
         
         // Add glow layer if not exists
@@ -139,17 +233,26 @@ class FoodSpawner {
         // Add subtle animation
         const amplitude = 0.1;
         const frequency = 1;
+        const rotationSpeed = 0.001;
         const observer = this.scene.onBeforeRenderObservable.add(() => {
             if (food.isDisposed()) {
                 this.scene.onBeforeRenderObservable.remove(observer);
                 return;
             }
+            
+            // Floating motion
             food.position.y += Math.sin(performance.now() * 0.001) * amplitude * frequency * 0.01;
+            
+            // Slow rotation
+            food.rotation.y += rotationSpeed;
+            food.rotation.x += rotationSpeed * 0.5;
         });
         
         if (this.debugMode) {
             console.log(`Food created at position (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
         }
+        
+        return food;
     }
 
     update() {

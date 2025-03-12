@@ -23,41 +23,61 @@ class SeekFoodBehavior extends YUKA.SteeringBehavior {
     }
 
     calculate(vehicle, force) {
-        // Periodically search for food if we don't have a target
-        const now = performance.now();
-        if (!this.target && now - this._lastSearchTime > this._searchInterval) {
-            this._lastSearchTime = now;
-            vehicle.findFood();
-        }
-        
-        if (!this.target) return force;
-        
-        // Check if target still exists
-        if (!vehicle.scene.foodSpawner?.foodParticles.includes(this.target)) {
+        try {
+            // Periodically search for food if we don't have a target
+            const now = performance.now();
+            if (!this.target && now - this._lastSearchTime > this._searchInterval) {
+                this._lastSearchTime = now;
+                vehicle.findFood();
+            }
+            
+            if (!this.target) return force;
+            
+            // Check if target still exists or is disposed
+            if ((typeof this.target.isDisposed === 'function' && this.target.isDisposed()) || 
+                !vehicle.scene.foodSpawner?.foodParticles.includes(this.target)) {
+                this.target = null;
+                vehicle.state.hasFood = false;
+                return force;
+            }
+            
+            // Make sure target has a valid position
+            if (!this.target.position || 
+                typeof this.target.position.x !== 'number' || 
+                typeof this.target.position.y !== 'number' || 
+                typeof this.target.position.z !== 'number') {
+                console.warn('Food target has invalid position');
+                this.target = null;
+                vehicle.state.hasFood = false;
+                return force;
+            }
+            
+            const direction = new YUKA.Vector3();
+            const targetPosition = new YUKA.Vector3(
+                this.target.position.x,
+                this.target.position.y,
+                this.target.position.z
+            );
+            direction.subVectors(targetPosition, vehicle.position);
+            
+            // If close enough to eat
+            if (direction.length() < 1.5) { // Increased from 1 to 1.5 for easier eating
+                vehicle.eatFood(this.target);
+                this.target = null;
+                return force;
+            }
+            
+            direction.normalize();
+            direction.multiplyScalar(vehicle.maxSpeed * 1.2); // Boost speed when seeking food
+            force.add(direction);
+            return force;
+        } catch (e) {
+            // If there's any error, reset the target and log the error
+            console.warn(`Error in SeekFoodBehavior: ${e.message}`);
             this.target = null;
             vehicle.state.hasFood = false;
             return force;
         }
-        
-        const direction = new YUKA.Vector3();
-        const targetPosition = new YUKA.Vector3(
-            this.target.position.x,
-            this.target.position.y,
-            this.target.position.z
-        );
-        direction.subVectors(targetPosition, vehicle.position);
-        
-        // If close enough to eat
-        if (direction.length() < 1.5) { // Increased from 1 to 1.5 for easier eating
-            vehicle.eatFood(this.target);
-            this.target = null;
-            return force;
-        }
-        
-        direction.normalize();
-        direction.multiplyScalar(vehicle.maxSpeed * 1.2); // Boost speed when seeking food
-        force.add(direction);
-        return force;
     }
 }
 
@@ -303,7 +323,10 @@ class Fish extends YUKA.Vehicle {
         if (this.seekFoodBehavior.target || !this.state.isHungry) return;
         
         const foodParticles = this.scene.foodSpawner?.foodParticles || [];
-        if (foodParticles.length === 0) return;
+        if (foodParticles.length === 0) {
+            console.log(`Fish ${this.id} couldn't find any food (no food available)`);
+            return;
+        }
 
         // Find nearest food
         let nearestFood = null;
@@ -311,22 +334,33 @@ class Fish extends YUKA.Vehicle {
         
         // Increased search radius from infinity to 30 units
         const MAX_SEARCH_DISTANCE = 30;
+        
+        // Get fish position as array for distance calculation
+        const fishPosition = [this.position.x, this.position.y, this.position.z];
 
         for (const food of foodParticles) {
-            const distance = BABYLON.Vector3.Distance(
-                this.position.toArray(),
-                food.position
-            );
+            // Skip disposed food
+            if (food.isDisposed()) continue;
             
-            // Only consider food within reasonable distance
-            if (distance < nearestDistance && distance < MAX_SEARCH_DISTANCE) {
-                nearestDistance = distance;
-                nearestFood = food;
+            try {
+                const distance = BABYLON.Vector3.Distance(
+                    fishPosition,
+                    food.position
+                );
+                
+                // Only consider food within reasonable distance
+                if (distance < nearestDistance && distance < MAX_SEARCH_DISTANCE) {
+                    nearestDistance = distance;
+                    nearestFood = food;
+                }
+            } catch (e) {
+                console.warn(`Error calculating distance to food: ${e.message}`);
+                continue;
             }
         }
 
         if (nearestFood) {
-            console.log(`Fish ${this.id} found food at distance ${nearestDistance}`);
+            console.log(`Fish ${this.id} found food at distance ${nearestDistance.toFixed(2)}`);
             this.seekFoodBehavior.target = nearestFood;
             this.seekFoodBehavior.active = true;
             this.state.hasFood = true;
@@ -339,6 +373,7 @@ class Fish extends YUKA.Vehicle {
             });
         } else if (this.energy < 0.4) {
             // If very hungry and no food found, increase wander behavior to look harder
+            console.log(`Fish ${this.id} is very hungry (${(this.energy * 100).toFixed(0)}%) but couldn't find food`);
             this.steering.behaviors.forEach(behavior => {
                 if (behavior instanceof YUKA.WanderBehavior) {
                     behavior.weight *= 2;
