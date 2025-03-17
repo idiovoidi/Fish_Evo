@@ -3760,6 +3760,490 @@ await in initialize
 
 _**Assistant**_
 
+I'll help you fix the missing texture issue for the food particles. Let's create a simple texture directly in code instead of relying on an external file.
+
+---
+
+_****_
+
+```diff
+  
+      setupParticleSystem() {
+-         // Texture
+-         this.particleSystem.particleTexture = new BABYLON.Texture("textures/food_particle.png", this.scene);
++         // Create a procedural texture instead of loading an external file
++         const foodTexture = this.createFoodTexture();
++         this.particleSystem.particleTexture = foodTexture;
+          
+          // Colors
+          this.particleSystem.start();
+      }
++ 
++     createFoodTexture() {
++         // Create a dynamic texture for food particles
++         const size = 64;
++         const texture = new BABYLON.DynamicTexture("foodParticleTexture", size, this.scene, false);
++         const ctx = texture.getContext();
++         
++         // Clear the canvas
++         ctx.clearRect(0, 0, size, size);
++         
++         // Draw a circular gradient (food particle)
++         const centerX = size / 2;
++         const centerY = size / 2;
++         const radius = size / 2 - 4;
++         
++         // Create radial gradient
++         const gradient = ctx.createRadialGradient(
++             centerX, centerY, 0,
++             centerX, centerY, radius
++         );
++         
++         // Add color stops
++         gradient.addColorStop(0, 'rgba(255, 230, 150, 1)');    // Center: light yellow
++         gradient.addColorStop(0.7, 'rgba(200, 170, 50, 0.8)'); // Middle: gold
++         gradient.addColorStop(1, 'rgba(150, 120, 30, 0)');     // Edge: transparent brown
++         
++         // Fill with gradient
++         ctx.fillStyle = gradient;
++         ctx.beginPath();
++         ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
++         ctx.fill();
++         
++         // Add some "food particle" details
++         ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
++         
++         // Add a few small dots
++         for (let i = 0; i < 5; i++) {
++             const angle = Math.random() * Math.PI * 2;
++             const distance = Math.random() * radius * 0.6;
++             const dotX = centerX + Math.cos(angle) * distance;
++             const dotY = centerY + Math.sin(angle) * distance;
++             const dotSize = 2 + Math.random() * 3;
++             
++             ctx.beginPath();
++             ctx.arc(dotX, dotY, dotSize, 0, Math.PI * 2);
++             ctx.fill();
++         }
++         
++         // Update the texture
++         texture.update();
++         
++         return texture;
++     }
+  
+      setupCollisions() {
+```
+
+---
+
+_****_
+
+Now let's also update the food mesh creation to make it more visually appealing and consistent with the particle texture:
+
+---
+
+_****_
+
+```diff
+          while (this.foodParticles.length >= this.maxFoodParticles) {
+              const oldestFood = this.foodParticles.shift();
++             if (!oldestFood.isDisposed()) {
+                  oldestFood.dispose();
+              }
++         }
+  
+-         // Create new food instance
+-         const food = BABYLON.MeshBuilder.CreateSphere("food", {
+-             diameter: 0.3,
+-             segments: 8
++         // Create new food instance - using an icosphere for better appearance
++         const food = BABYLON.MeshBuilder.CreateIcoSphere("food", {
++             radius: 0.15,
++             subdivisions: 2,
++             updatable: false
+          }, this.scene);
+          
+          // Create glowing material
+          const foodMaterial = new BABYLON.StandardMaterial("foodMaterial", this.scene);
++         
++         // Create a procedural texture for the food
++         const foodTexture = new BABYLON.DynamicTexture("foodTexture", 128, this.scene, false);
++         const ctx = foodTexture.getContext();
++         
++         // Clear the canvas
++         ctx.clearRect(0, 0, 128, 128);
++         
++         // Create a gradient background
++         const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
++         gradient.addColorStop(0, '#ffe696');  // Light yellow center
++         gradient.addColorStop(0.7, '#c8aa32'); // Gold middle
++         gradient.addColorStop(1, '#96781e');   // Brown edge
++         
++         ctx.fillStyle = gradient;
++         ctx.fillRect(0, 0, 128, 128);
++         
++         // Add some texture details
++         ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
++         for (let i = 0; i < 12; i++) {
++             const x = Math.random() * 128;
++             const y = Math.random() * 128;
++             const size = 2 + Math.random() * 5;
++             
++             ctx.beginPath();
++             ctx.arc(x, y, size, 0, Math.PI * 2);
++             ctx.fill();
++         }
++         
++         // Update the texture
++         foodTexture.update();
++         
++         // Apply the texture to the material
++         foodMaterial.diffuseTexture = foodTexture;
+          foodMaterial.emissiveColor = new BABYLON.Color3(0.7, 0.6, 0.3);
+-         foodMaterial.alpha = 0.8;
++         foodMaterial.specularColor = new BABYLON.Color3(1, 1, 0.8);
++         foodMaterial.alpha = 0.9;
++         
++         // Apply material to the food mesh
+          food.material = foodMaterial;
+          
+          const amplitude = 0.1;
+          const frequency = 1;
++         const rotationSpeed = 0.001;
+          const observer = this.scene.onBeforeRenderObservable.add(() => {
+              if (food.isDisposed()) {
+                  this.scene.onBeforeRenderObservable.remove(observer);
+                  return;
+              }
++             
++             // Floating motion
+              food.position.y += Math.sin(performance.now() * 0.001) * amplitude * frequency * 0.01;
++             
++             // Slow rotation
++             food.rotation.y += rotationSpeed;
++             food.rotation.x += rotationSpeed * 0.5;
+          });
+          
+          if (this.debugMode) {
+              console.log(`Food created at position (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);
+          }
++         
++         return food;
+      }
+  
+```
+
+---
+
+_****_
+
+Let's make one more improvement to ensure the fish can properly detect and interact with the food:
+
+---
+
+_****_
+
+```diff
+          
+          const foodParticles = this.scene.foodSpawner?.foodParticles || [];
+-         if (foodParticles.length === 0) return;
++         if (foodParticles.length === 0) {
++             console.log(`Fish ${this.id} couldn't find any food (no food available)`);
++             return;
++         }
+  
+          // Find nearest food
+          // Increased search radius from infinity to 30 units
+          const MAX_SEARCH_DISTANCE = 30;
++         
++         // Get fish position as array for distance calculation
++         const fishPosition = [this.position.x, this.position.y, this.position.z];
+  
+          for (const food of foodParticles) {
++             // Skip disposed food
++             if (food.isDisposed()) continue;
++             
++             try {
+                  const distance = BABYLON.Vector3.Distance(
+-                 this.position.toArray(),
++                     fishPosition,
+                      food.position
+                  );
+                      nearestDistance = distance;
+                      nearestFood = food;
++                 }
++             } catch (e) {
++                 console.warn(`Error calculating distance to food: ${e.message}`);
++                 continue;
+              }
+          }
+  
+          if (nearestFood) {
+-             console.log(`Fish ${this.id} found food at distance ${nearestDistance}`);
++             console.log(`Fish ${this.id} found food at distance ${nearestDistance.toFixed(2)}`);
+              this.seekFoodBehavior.target = nearestFood;
+              this.seekFoodBehavior.active = true;
+          } else if (this.energy < 0.4) {
+              // If very hungry and no food found, increase wander behavior to look harder
++             console.log(`Fish ${this.id} is very hungry (${(this.energy * 100).toFixed(0)}%) but couldn't find food`);
+              this.steering.behaviors.forEach(behavior => {
+                  if (behavior instanceof YUKA.WanderBehavior) {
+```
+
+---
+
+_****_
+
+Finally, let's update the SeekFoodBehavior's calculate method to handle the new food implementation more robustly:
+
+---
+
+_****_
+
+
+
+---
+
+_****_
+
+Let me try again with the SeekFoodBehavior:
+
+---
+
+_****_
+
+Read file: undefined
+
+---
+
+_****_
+
+
+
+---
+
+_****_
+
+Let me try a different approach:
+
+---
+
+_****_
+
+```bash
+cat fish.js | head -60
+```
+
+```
+PS C:\Users\Mitchell\Documents\My_Code\Art\Fish_Evo> cat fish.js | head -60
+head: The term 'head' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+PS C:\Users\Mitchell\Documents\My_Code\Art\Fish_Evo> cat fish.js | head -60   
+head: The term 'head' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PS C:\Users\Mitchell\Documents\My_Code\Art\Fish_Evo>
+```
+
+---
+
+_****_
+
+Let's try a different approach:
+
+---
+
+_****_
+
+```bash
+type fish.js | Select-Object -First 60
+```
+
+```
+
+
+        this.preconditions = preconditions;
+        this.effects = effects;
+        this.cost = cost;
+    }
+
+    checkPreconditions(state) {
+        return Object.entries(this.preconditions).every(([key, value]) => state[key] === value);
+    }
+}
+
+// Custom Seek Food Behavior
+class SeekFoodBehavior extends YUKA.SteeringBehavior {
+    constructor() {
+        super();
+        this.weight = 5; // Increased from 3 to 5 to make food seeking higher priority
+        this.target = null;
+        this._lastSearchTime = 0;
+        this._searchInterval = 500; // Search for food every 500ms
+    }
+
+    calculate(vehicle, force) {
+        // Periodically search for food if we don't have a target
+        const now = performance.now();
+        if (!this.target && now - this._lastSearchTime > this._searchInterval) {
+            this._lastSearchTime = now;
+            vehicle.findFood();
+        }
+
+        if (!this.target) return force;
+
+        // Check if target still exists
+        if (!vehicle.scene.foodSpawner?.foodParticles.includes(this.target)) {
+            this.target = null;
+            vehicle.state.hasFood = false;
+            return force;
+        }
+
+        const direction = new YUKA.Vector3();
+        const targetPosition = new YUKA.Vector3(
+            this.target.position.x,
+            this.target.position.y,
+            this.target.position.z
+        );
+        direction.subVectors(targetPosition, vehicle.position);
+
+        // If close enough to eat
+        if (direction.length() < 1.5) { // Increased from 1 to 1.5 for easier eating
+            vehicle.eatFood(this.target);
+            this.target = null;
+            return force;
+        }
+
+        direction.normalize();
+        direction.multiplyScalar(vehicle.maxSpeed * 1.2); // Boost speed when seeking food
+        force.add(direction);
+        return force;
+
+```
+
+---
+
+_****_
+
+Let's try a different approach to update the SeekFoodBehavior:
+
+---
+
+_****_
+
+```diff
+  
+      calculate(vehicle, force) {
++         try {
+              // Periodically search for food if we don't have a target
+              const now = performance.now();
+              if (!this.target) return force;
+              
+-         // Check if target still exists
+-         if (!vehicle.scene.foodSpawner?.foodParticles.includes(this.target)) {
++             // Check if target still exists or is disposed
++             if ((typeof this.target.isDisposed === 'function' && this.target.isDisposed()) || 
++                 !vehicle.scene.foodSpawner?.foodParticles.includes(this.target)) {
++                 this.target = null;
++                 vehicle.state.hasFood = false;
++                 return force;
++             }
++             
++             // Make sure target has a valid position
++             if (!this.target.position || 
++                 typeof this.target.position.x !== 'number' || 
++                 typeof this.target.position.y !== 'number' || 
++                 typeof this.target.position.z !== 'number') {
++                 console.warn('Food target has invalid position');
+                  this.target = null;
+                  vehicle.state.hasFood = false;
+              force.add(direction);
+              return force;
++         } catch (e) {
++             // If there's any error, reset the target and log the error
++             console.warn(`Error in SeekFoodBehavior: ${e.message}`);
++             this.target = null;
++             vehicle.state.hasFood = false;
++             return force;
++         }
+      }
+  }
+```
+
+---
+
+_****_
+
+Great! I've made several improvements to fix the missing texture issue and enhance the food system:
+
+1. **Created Procedural Food Textures**:
+   - Replaced the missing external texture file with dynamically generated textures
+   - Created a beautiful radial gradient texture with light yellow center fading to gold and brown
+   - Added small white dots to give the food particles more detail and texture
+
+2. **Enhanced Food Appearance**:
+   - Changed food mesh from a basic sphere to an icosphere for better appearance
+   - Added a custom procedural texture to the food meshes
+   - Added slow rotation animation to make food look more interesting
+   - Improved the material with specular highlights and better transparency
+
+3. **Improved Food Behavior**:
+   - Added initial food spawn to ensure fish have food at the start
+   - Added emergency food spawn when food count gets low
+   - Increased the maximum food count from 50 to 80
+   - Added subtle floating animation to make food more visible
+
+4. **Made Fish-Food Interaction More Robust**:
+   - Added error handling in the SeekFoodBehavior to prevent crashes
+   - Added checks for disposed food objects
+   - Added validation for food position properties
+   - Improved logging to help debug any remaining issues
+   - Enhanced the findFood method with better error handling
+
+These changes should completely resolve the missing texture error and make the food system more robust and visually appealing. The fish should now be able to find and eat food more reliably, and the food particles will look much better with the procedurally generated textures.
+
+The food now has:
+1. A beautiful golden glow
+2. Gentle floating and rotation animations
+3. A detailed texture with gradient and small highlights
+4. Better visibility for both fish and the player
+
+Would you like me to make any additional adjustments to the food appearance or behavior?
+
+---
+
+_**User**_
+
+When fish are reaching the food and interacting with it they aren't restoring their energy levels.
+
+---
+
+_**Assistant**_
+
 
 
 ---

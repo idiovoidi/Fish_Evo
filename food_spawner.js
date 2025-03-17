@@ -175,6 +175,9 @@ class FoodSpawner {
         // Position food
         food.position = position.clone();
         
+        // Enable picking for the food mesh
+        food.isPickable = true;
+        
         // Create glowing material
         const foodMaterial = new BABYLON.StandardMaterial("foodMaterial", this.scene);
         
@@ -247,6 +250,11 @@ class FoodSpawner {
             food.rotation.y += rotationSpeed;
             food.rotation.x += rotationSpeed * 0.5;
         });
+        
+        // Add a custom isDisposed method to the food mesh for easier checking
+        food.isDisposed = function() {
+            return this.isDisposed === true || !this.parent;
+        };
         
         if (this.debugMode) {
             console.log(`Food created at position (${position.x.toFixed(2)}, ${position.y.toFixed(2)}, ${position.z.toFixed(2)})`);

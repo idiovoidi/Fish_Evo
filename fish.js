@@ -20,6 +20,7 @@ class SeekFoodBehavior extends YUKA.SteeringBehavior {
         this.target = null;
         this._lastSearchTime = 0;
         this._searchInterval = 500; // Search for food every 500ms
+        this._debugMode = true; // Enable debug logging
     }
 
     calculate(vehicle, force) {
@@ -36,6 +37,7 @@ class SeekFoodBehavior extends YUKA.SteeringBehavior {
             // Check if target still exists or is disposed
             if ((typeof this.target.isDisposed === 'function' && this.target.isDisposed()) || 
                 !vehicle.scene.foodSpawner?.foodParticles.includes(this.target)) {
+                if (this._debugMode) console.log(`Fish ${vehicle.id} lost food target (disposed or removed)`);
                 this.target = null;
                 vehicle.state.hasFood = false;
                 return force;
@@ -60,15 +62,29 @@ class SeekFoodBehavior extends YUKA.SteeringBehavior {
             );
             direction.subVectors(targetPosition, vehicle.position);
             
-            // If close enough to eat
-            if (direction.length() < 1.5) { // Increased from 1 to 1.5 for easier eating
+            // Calculate distance to food
+            const distance = direction.length();
+            
+            // If close enough to eat - increased eating distance to 2.0
+            if (distance < 2.0) {
+                if (this._debugMode) console.log(`Fish ${vehicle.id} is close enough to eat food (distance: ${distance.toFixed(2)})`);
                 vehicle.eatFood(this.target);
                 this.target = null;
                 return force;
             }
             
+            // Log distance to food for debugging
+            if (this._debugMode && Math.random() < 0.01) { // Only log occasionally to avoid spam
+                console.log(`Fish ${vehicle.id} seeking food, distance: ${distance.toFixed(2)}`);
+            }
+            
+            // Apply stronger steering force when getting closer to food
             direction.normalize();
-            direction.multiplyScalar(vehicle.maxSpeed * 1.2); // Boost speed when seeking food
+            
+            // Boost speed more when closer to the food
+            const proximityFactor = Math.max(0.8, 2.0 - distance / 5); // Ranges from 0.8 to 2.0
+            direction.multiplyScalar(vehicle.maxSpeed * proximityFactor);
+            
             force.add(direction);
             return force;
         } catch (e) {
@@ -320,7 +336,13 @@ class Fish extends YUKA.Vehicle {
 
     findFood() {
         // If already seeking food or not hungry, don't look for more food
-        if (this.seekFoodBehavior.target || !this.state.isHungry) return;
+        if (this.seekFoodBehavior.target) {
+            return;
+        }
+        
+        if (!this.state.isHungry) {
+            return;
+        }
         
         const foodParticles = this.scene.foodSpawner?.foodParticles || [];
         if (foodParticles.length === 0) {
@@ -337,10 +359,25 @@ class Fish extends YUKA.Vehicle {
         
         // Get fish position as array for distance calculation
         const fishPosition = [this.position.x, this.position.y, this.position.z];
+        
+        // Count valid food items for debugging
+        let validFoodCount = 0;
 
         for (const food of foodParticles) {
             // Skip disposed food
-            if (food.isDisposed()) continue;
+            if (food.isDisposed && food.isDisposed()) {
+                continue;
+            }
+            
+            // Skip food without valid position
+            if (!food.position || 
+                typeof food.position.x !== 'number' || 
+                typeof food.position.y !== 'number' || 
+                typeof food.position.z !== 'number') {
+                continue;
+            }
+            
+            validFoodCount++;
             
             try {
                 const distance = BABYLON.Vector3.Distance(
@@ -358,9 +395,14 @@ class Fish extends YUKA.Vehicle {
                 continue;
             }
         }
+        
+        // Log food search results
+        if (validFoodCount === 0) {
+            console.warn(`Fish ${this.id} found ${foodParticles.length} food particles but none were valid`);
+        }
 
         if (nearestFood) {
-            console.log(`Fish ${this.id} found food at distance ${nearestDistance.toFixed(2)}`);
+            console.log(`Fish ${this.id} found food at distance ${nearestDistance.toFixed(2)} (energy: ${(this.energy * 100).toFixed(0)}%)`);
             this.seekFoodBehavior.target = nearestFood;
             this.seekFoodBehavior.active = true;
             this.state.hasFood = true;
@@ -383,10 +425,18 @@ class Fish extends YUKA.Vehicle {
     }
 
     eatFood(food) {
-        if (!food || !this.scene.foodSpawner) return;
+        if (!food || !this.scene.foodSpawner) {
+            console.warn(`Fish ${this.id} tried to eat food but food or foodSpawner is null`);
+            return;
+        }
         
         const index = this.scene.foodSpawner.foodParticles.indexOf(food);
-        if (index === -1) return;
+        if (index === -1) {
+            console.warn(`Fish ${this.id} tried to eat food but it wasn't found in foodParticles array`);
+            return;
+        }
+
+        console.log(`Fish ${this.id} is eating food at index ${index}`);
 
         // Remove food from scene
         this.scene.foodSpawner.foodParticles.splice(index, 1);
@@ -411,6 +461,9 @@ class Fish extends YUKA.Vehicle {
         
         // Apply energy restoration with unique value
         this.energy = Math.min(1.0, this.energy + energyRestoration);
+        
+        // Log energy change for debugging
+        console.log(`Fish ${this.id} energy: ${(previousEnergy * 100).toFixed(0)}% -> ${(this.energy * 100).toFixed(0)}% (+${Math.round(energyRestoration * 100)}%)`);
         
         // Visual feedback color based on energy restoration amount
         const renderComponent = this.renderComponent;
@@ -495,9 +548,6 @@ class Fish extends YUKA.Vehicle {
                 }, transitionTime);
             }
         });
-        
-        // Log energy gain for debugging
-        console.log(`Fish ${this.id} restored ${Math.round(energyRestoration * 100)}% energy`);
     }
 
     rest() {
