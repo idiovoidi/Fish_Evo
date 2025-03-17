@@ -24,99 +24,154 @@ class Shark extends YUKA.Vehicle {
         
         // Create shark mesh and animations
         console.log("Shark: Setting up mesh and animations...");
-        this.createShark();
-        this.setupBehaviors();
-        console.log("Shark: Initialization complete");
+        try {
+            this.createShark();
+            this.setupBehaviors();
+            console.log("Shark: Initialization complete");
+        } catch (error) {
+            console.error("Shark: Error during initialization:", error);
+        }
     }
 
     createShark() {
-        // Create main body
-        const body = BABYLON.MeshBuilder.CreateCapsule("sharkBody", {
-            radius: 1,
-            height: 8,
-            tessellation: 24,
-            capSubdivisions: 12
-        }, this.scene);
+        try {
+            console.log("Shark: Starting mesh creation process");
+            
+            // Create main body
+            const body = BABYLON.MeshBuilder.CreateCapsule("sharkBody", {
+                radius: 1,
+                height: 8,
+                tessellation: 24,
+                capSubdivisions: 12
+            }, this.scene);
+            console.log("Shark: Created body mesh");
 
-        // Create head
-        const head = BABYLON.MeshBuilder.CreateCapsule("sharkHead", {
-            radius: 1.2,
-            height: 3,
-            tessellation: 24,
-            capSubdivisions: 12
-        }, this.scene);
-        head.position.z = 4;
-        head.rotation.x = Math.PI / 2;
+            // Create head
+            const head = BABYLON.MeshBuilder.CreateCapsule("sharkHead", {
+                radius: 1.2,
+                height: 3,
+                tessellation: 24,
+                capSubdivisions: 12
+            }, this.scene);
+            head.position.z = 4;
+            head.rotation.x = Math.PI / 2;
+            console.log("Shark: Created head mesh");
 
-        // Create tail
-        const tailBase = BABYLON.MeshBuilder.CreateCapsule("sharkTailBase", {
-            radius: 0.8,
-            height: 3,
-            tessellation: 16,
-            capSubdivisions: 8
-        }, this.scene);
-        tailBase.position.z = -4;
+            // Create tail
+            const tailBase = BABYLON.MeshBuilder.CreateCapsule("sharkTailBase", {
+                radius: 0.8,
+                height: 3,
+                tessellation: 16,
+                capSubdivisions: 8
+            }, this.scene);
+            tailBase.position.z = -4;
+            console.log("Shark: Created tail base mesh");
 
-        const tailFin = this.createFin(2.5, 1.5, "tailFin");
-        tailFin.position.z = -5.5;
-        tailFin.rotation.x = Math.PI / 2;
+            const tailFin = this.createFin(2.5, 1.5, "tailFin");
+            tailFin.position.z = -5.5;
+            tailFin.rotation.x = Math.PI / 2;
+            console.log("Shark: Created tail fin mesh");
 
-        // Create dorsal fin
-        const dorsalFin = this.createFin(2, 1.2, "dorsalFin");
-        dorsalFin.position.y = 1.5;
-        dorsalFin.rotation.x = Math.PI;
+            // Create dorsal fin
+            const dorsalFin = this.createFin(2, 1.2, "dorsalFin");
+            dorsalFin.position.y = 1.5;
+            dorsalFin.rotation.x = Math.PI;
+            console.log("Shark: Created dorsal fin mesh");
 
-        // Create pectoral fins
-        const leftPectoral = this.createFin(1.5, 0.8, "leftPectoral");
-        leftPectoral.position.set(1.5, -0.2, 0);
-        leftPectoral.rotation.set(0, 0, -Math.PI / 4);
+            // Create pectoral fins
+            const leftPectoral = this.createFin(1.5, 0.8, "leftPectoral");
+            leftPectoral.position.set(1.5, -0.2, 0);
+            leftPectoral.rotation.set(0, 0, -Math.PI / 4);
+            console.log("Shark: Created left pectoral fin mesh");
 
-        const rightPectoral = this.createFin(1.5, 0.8, "rightPectoral");
-        rightPectoral.position.set(-1.5, -0.2, 0);
-        rightPectoral.rotation.set(0, 0, Math.PI / 4);
+            const rightPectoral = this.createFin(1.5, 0.8, "rightPectoral");
+            rightPectoral.position.set(-1.5, -0.2, 0);
+            rightPectoral.rotation.set(0, 0, Math.PI / 4);
+            console.log("Shark: Created right pectoral fin mesh");
 
-        // Create eyes
-        const leftEye = BABYLON.MeshBuilder.CreateSphere("leftEye", {
-            diameter: 0.3,
-            segments: 16
-        }, this.scene);
-        leftEye.position.set(0.8, 0.5, 4.5);
+            // Create eyes
+            const leftEye = BABYLON.MeshBuilder.CreateSphere("leftEye", {
+                diameter: 0.3,
+                segments: 16
+            }, this.scene);
+            leftEye.position.set(0.8, 0.5, 4.5);
+            console.log("Shark: Created left eye mesh");
 
-        const rightEye = BABYLON.MeshBuilder.CreateSphere("rightEye", {
-            diameter: 0.3,
-            segments: 16
-        }, this.scene);
-        rightEye.position.set(-0.8, 0.5, 4.5);
+            const rightEye = BABYLON.MeshBuilder.CreateSphere("rightEye", {
+                diameter: 0.3,
+                segments: 16
+            }, this.scene);
+            rightEye.position.set(-0.8, 0.5, 4.5);
+            console.log("Shark: Created right eye mesh");
 
-        // Create gills (simple lines)
-        const gillMaterial = new BABYLON.StandardMaterial("gillMaterial", this.scene);
-        gillMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+            // Create gills (simple lines)
+            const gillMaterial = new BABYLON.StandardMaterial("gillMaterial", this.scene);
+            gillMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.2);
 
-        const gills = [];
-        for (let i = 0; i < 3; i++) {
-            for (let side of [-1, 1]) {
-                const gill = BABYLON.MeshBuilder.CreateBox("gill", {
-                    height: 0.8,
-                    width: 0.05,
-                    depth: 0.1
-                }, this.scene);
-                gill.position.set(side * 1, 0, 3 - i * 0.4);
-                gill.rotation.z = side * Math.PI / 6;
-                gill.material = gillMaterial;
-                gills.push(gill);
+            const gills = [];
+            for (let i = 0; i < 3; i++) {
+                for (let side of [-1, 1]) {
+                    const gill = BABYLON.MeshBuilder.CreateBox("gill", {
+                        height: 0.8,
+                        width: 0.05,
+                        depth: 0.1
+                    }, this.scene);
+                    gill.position.set(side * 1, 0, 3 - i * 0.4);
+                    gill.rotation.z = side * Math.PI / 6;
+                    gill.material = gillMaterial;
+                    gills.push(gill);
+                }
             }
+            console.log("Shark: Created gill meshes");
+
+            // Check if all parts are valid before merging
+            const parts = [body, head, tailBase, tailFin, dorsalFin, leftPectoral, rightPectoral, leftEye, rightEye, ...gills];
+            const validParts = parts.filter(part => part && !part.isDisposed());
+            
+            if (validParts.length !== parts.length) {
+                console.error(`Shark: Some parts are invalid! Expected ${parts.length} but got ${validParts.length} valid parts`);
+            }
+            
+            console.log("Shark: Attempting to merge meshes");
+            
+            // Try alternative mesh creation if MergeMeshes fails
+            try {
+                this.mesh = BABYLON.Mesh.MergeMeshes(validParts, true, true, undefined, false, true);
+                
+                if (!this.mesh) {
+                    throw new Error("MergeMeshes returned null");
+                }
+            } catch (mergeError) {
+                console.error("Shark: Error merging meshes:", mergeError);
+                console.log("Shark: Trying alternative approach - creating parent mesh");
+                
+                // Create a parent mesh and parent all parts to it
+                this.mesh = new BABYLON.Mesh("shark_parent", this.scene);
+                validParts.forEach(part => {
+                    part.parent = this.mesh;
+                });
+            }
+            
+            this.mesh.name = "shark_" + Math.floor(Math.random() * 1000);
+            console.log("Shark: Created mesh with name:", this.mesh.name);
+            
+            // Ensure mesh is visible
+            this.mesh.isVisible = true;
+            this.mesh.visibility = 1.0;
+            
+            // Create skeleton and attach to mesh
+            this.createSkeleton();
+            this.mesh.skeleton = this.skeleton;
+            
+            // Apply materials
+            this.applySharkMaterials();
+            
+            console.log("Shark: Mesh created successfully:", this.mesh.name);
+            return this.mesh;
+        } catch (error) {
+            console.error("Shark: Error creating shark mesh:", error);
+            throw error;
         }
-
-        // Merge all parts
-        const parts = [body, head, tailBase, tailFin, dorsalFin, leftPectoral, rightPectoral, leftEye, rightEye, ...gills];
-        this.mesh = BABYLON.Mesh.MergeMeshes(parts, true);
-
-        // Create skeleton and attach to mesh
-        this.createSkeleton();
-        this.mesh.skeleton = this.skeleton;
-        
-        // Apply materials
-        this.applySharkMaterials();
     }
 
     createFin(height, width, name) {
@@ -325,65 +380,95 @@ class Shark extends YUKA.Vehicle {
     }
 
     update(delta) {
-        super.update(delta);
+        try {
+            super.update(delta);
 
-        // Update mesh position and rotation
-        if (this.mesh) {
-            this.mesh.position.copyFrom(this.position);
-            this.mesh.rotation.y = this.rotation.y;
+            // Update mesh position and rotation
+            if (this.mesh && !this.mesh.isDisposed()) {
+                this.mesh.position.copyFrom(this.position);
+                this.mesh.rotation.y = this.rotation.y;
 
-            // Add slight pitch based on velocity
-            const velocityY = this.velocity.y;
-            this.mesh.rotation.x = BABYLON.Scalar.Clamp(velocityY * 0.1, -Math.PI/6, Math.PI/6);
+                // Add slight pitch based on velocity
+                const velocityY = this.velocity.y;
+                this.mesh.rotation.x = BABYLON.Scalar.Clamp(velocityY * 0.1, -Math.PI/6, Math.PI/6);
 
-            // Update skeleton
-            if (this.skeleton) {
-                this.skeleton.prepare();
-                
-                // Update bone positions based on mesh movement
-                for (let i = 0; i < this.skeleton.bones.length; i++) {
-                    const bone = this.skeleton.bones[i];
-                    if (bone.animations && bone.animations.length > 0) {
-                        bone.animations.forEach(animation => {
-                            const currentFrame = (performance.now() * 0.03) % 30;
-                            const value = animation.evaluate(currentFrame);
-                            bone.rotation[animation.targetProperty.split('.')[1]] = value;
-                        });
+                // Update skeleton
+                if (this.skeleton) {
+                    this.skeleton.prepare();
+                    
+                    // Update bone positions based on mesh movement
+                    for (let i = 0; i < this.skeleton.bones.length; i++) {
+                        const bone = this.skeleton.bones[i];
+                        if (bone.animations && bone.animations.length > 0) {
+                            bone.animations.forEach(animation => {
+                                const currentFrame = (performance.now() * 0.03) % 30;
+                                const value = animation.evaluate(currentFrame);
+                                bone.rotation[animation.targetProperty.split('.')[1]] = value;
+                            });
+                        }
                     }
                 }
+            } else {
+                console.warn("Shark: Mesh is disposed or not created, cannot update position");
             }
-        }
 
-        // Update patrol behavior
-        this.patrolTimer += delta;
-        if (this.patrolTimer >= this.patrolDuration) {
-            this.patrolTimer = 0;
-            this.patrolDuration = 10 + Math.random() * 10;
-            
-            // Change direction by updating seek target
-            const randomPoint = new YUKA.Vector3(
-                (Math.random() - 0.5) * 80,
-                5 + Math.random() * 10,
-                (Math.random() - 0.5) * 80
-            );
+            // Update patrol behavior
+            this.patrolTimer += delta;
+            if (this.patrolTimer >= this.patrolDuration) {
+                this.patrolTimer = 0;
+                this.patrolDuration = 10 + Math.random() * 10;
+                
+                // Change direction by updating seek target
+                const randomPoint = new YUKA.Vector3(
+                    (Math.random() - 0.5) * 80,
+                    5 + Math.random() * 10,
+                    (Math.random() - 0.5) * 80
+                );
 
-            // Update seek behavior
-            this.seekBehavior.target = randomPoint;
-            this.seekBehavior.active = true;  // Enable seeking
+                // Update seek behavior
+                this.seekBehavior.target = randomPoint;
+                this.seekBehavior.active = true;  // Enable seeking
 
-            // Disable seek after reaching close to target
-            setTimeout(() => {
-                this.seekBehavior.active = false;
-            }, 5000);  // Disable after 5 seconds
+                // Disable seek after reaching close to target
+                setTimeout(() => {
+                    this.seekBehavior.active = false;
+                }, 5000);  // Disable after 5 seconds
+            }
+        } catch (error) {
+            console.error("Shark: Error in update method:", error);
         }
     }
 
     dispose() {
-        if (this.mesh) {
-            this.mesh.dispose();
-        }
-        if (this.skeleton) {
-            this.skeleton.dispose();
+        try {
+            console.log("Shark: Disposing shark instance");
+            
+            // Clear any timeouts
+            if (this._timeouts) {
+                this._timeouts.forEach(clearTimeout);
+                this._timeouts = [];
+            }
+            
+            // Dispose mesh
+            if (this.mesh && !this.mesh.isDisposed()) {
+                console.log("Shark: Disposing mesh:", this.mesh.name);
+                this.mesh.dispose();
+                this.mesh = null;
+            }
+            
+            // Dispose skeleton
+            if (this.skeleton) {
+                console.log("Shark: Disposing skeleton");
+                this.skeleton.dispose();
+                this.skeleton = null;
+            }
+            
+            // Clear animations
+            this.animations = {};
+            
+            console.log("Shark: Disposal complete");
+        } catch (error) {
+            console.error("Shark: Error during disposal:", error);
         }
     }
 }
@@ -391,31 +476,103 @@ class Shark extends YUKA.Vehicle {
 class SharkHandler {
     constructor(scene, landscape) {
         console.log("SharkHandler: Initializing...");
+        if (!scene) {
+            console.error("SharkHandler: Scene is required but was not provided!");
+            return;
+        }
+        
+        // Store references
         this.scene = scene;
         this.landscape = landscape;
         this.sharks = [];
-        this.entityManager = new YUKA.EntityManager();
-        this.time = new YUKA.Time();
         
-        // Create initial shark
-        this.createShark();
-        console.log("SharkHandler: Initialization complete");
+        // Initialize YUKA components
+        try {
+            console.log("SharkHandler: Setting up YUKA components");
+            this.entityManager = new YUKA.EntityManager();
+            this.time = new YUKA.Time();
+            console.log("SharkHandler: YUKA components initialized successfully");
+        } catch (error) {
+            console.error("SharkHandler: Error initializing YUKA components:", error);
+            return;
+        }
+        
+        // Create initial shark with retry mechanism
+        this.createSharkWithRetry(3);
+        
+        // Log completion
+        console.log("SharkHandler: Initialization complete with", this.sharks.length, "sharks");
+        
+        // Setup debug visualization if needed
+        if (this.scene.debugLayer && this.scene.debugLayer.isVisible()) {
+            this.setupDebugVisualization();
+        }
+    }
+
+    createSharkWithRetry(maxRetries = 3) {
+        console.log(`SharkHandler: Creating shark with ${maxRetries} retries`);
+        let retries = 0;
+        let success = false;
+        
+        while (!success && retries < maxRetries) {
+            try {
+                const shark = this.createShark();
+                if (shark && shark.mesh) {
+                    success = true;
+                    console.log(`SharkHandler: Successfully created shark on attempt ${retries + 1}`);
+                } else {
+                    retries++;
+                    console.warn(`SharkHandler: Failed to create shark, attempt ${retries}/${maxRetries}`);
+                }
+            } catch (error) {
+                retries++;
+                console.error(`SharkHandler: Error creating shark on attempt ${retries}/${maxRetries}:`, error);
+            }
+        }
+        
+        if (!success) {
+            console.error("SharkHandler: Failed to create shark after maximum retries");
+        }
+        
+        return success;
     }
 
     createShark() {
         console.log("SharkHandler: Creating new shark");
-        const shark = new Shark(this.scene);
-        
-        // Set initial position above the terrain
-        const spawnPosition = this.getSpawnPosition();
-        shark.position.copy(spawnPosition);
-        shark.rotation.fromEuler(0, Math.random() * Math.PI * 2, 0);
-        
-        // Add to managers
-        this.entityManager.add(shark);
-        this.sharks.push(shark);
-        
-        return shark;
+        try {
+            // Create the shark entity
+            const shark = new Shark(this.scene);
+            
+            // Verify shark was created properly
+            if (!shark) {
+                console.error("SharkHandler: Shark constructor returned null or undefined");
+                return null;
+            }
+            
+            if (!shark.mesh) {
+                console.error("SharkHandler: Shark created but has no mesh");
+                return null;
+            }
+            
+            // Set initial position above the terrain
+            const spawnPosition = this.getSpawnPosition();
+            shark.position.copy(spawnPosition);
+            shark.rotation.fromEuler(0, Math.random() * Math.PI * 2, 0);
+            
+            // Update mesh position immediately
+            shark.mesh.position.copyFrom(shark.position);
+            shark.mesh.rotation.y = shark.rotation.y;
+            
+            // Add to managers
+            this.entityManager.add(shark);
+            this.sharks.push(shark);
+            
+            console.log("SharkHandler: Shark created successfully with mesh:", shark.mesh.name);
+            return shark;
+        } catch (error) {
+            console.error("SharkHandler: Error creating shark:", error);
+            return null;
+        }
     }
 
     getSpawnPosition() {
@@ -426,8 +583,12 @@ class SharkHandler {
 
         // If landscape exists, position above terrain
         if (this.landscape && this.landscape.getHeightAtPoint) {
-            const terrainHeight = this.landscape.getHeightAtPoint(x, z);
-            y = terrainHeight + 5 + Math.random() * 5;
+            try {
+                const terrainHeight = this.landscape.getHeightAtPoint(x, z);
+                y = terrainHeight + 5 + Math.random() * 5;
+            } catch (e) {
+                console.warn("SharkHandler: Could not get terrain height, using default");
+            }
         }
 
         return new YUKA.Vector3(x, y, z);
@@ -443,19 +604,52 @@ class SharkHandler {
         
         // Update all sharks
         this.sharks.forEach((shark, index) => {
-            if (!shark.mesh || !shark.mesh.isEnabled()) {
+            if (!shark || !shark.mesh || shark.mesh.isDisposed()) {
                 console.log(`SharkHandler: Shark ${index} needs recreation`);
                 this.removeShark(shark);
-                this.createShark();
+                this.createSharkWithRetry(3);
             }
         });
         
+        // Create a shark if none exist
+        if (this.sharks.length === 0) {
+            console.log("SharkHandler: No sharks exist, creating one");
+            this.createSharkWithRetry(3);
+        }
+        
+        // Update YUKA entity manager
         this.entityManager.update(delta);
     }
 
+    setupDebugVisualization() {
+        // Create a debug sphere to visualize shark positions
+        this.sharks.forEach((shark, index) => {
+            const debugSphere = BABYLON.MeshBuilder.CreateSphere(
+                `shark_debug_${index}`, 
+                { diameter: 2 }, 
+                this.scene
+            );
+            
+            const debugMaterial = new BABYLON.StandardMaterial(`shark_debug_material_${index}`, this.scene);
+            debugMaterial.diffuseColor = new BABYLON.Color3(1, 0, 0);
+            debugMaterial.alpha = 0.5;
+            debugSphere.material = debugMaterial;
+            
+            // Update debug sphere position in render loop
+            this.scene.onBeforeRenderObservable.add(() => {
+                if (shark && shark.position) {
+                    debugSphere.position.copyFrom(shark.position);
+                }
+            });
+        });
+    }
+
     removeShark(shark) {
+        if (!shark) return;
+        
         const index = this.sharks.indexOf(shark);
         if (index > -1) {
+            console.log(`SharkHandler: Removing shark at index ${index}`);
             this.sharks.splice(index, 1);
             this.entityManager.remove(shark);
             shark.dispose();
@@ -463,8 +657,11 @@ class SharkHandler {
     }
 
     dispose() {
+        console.log("SharkHandler: Disposing all sharks");
         this.sharks.forEach(shark => {
-            shark.dispose();
+            if (shark) {
+                shark.dispose();
+            }
         });
         this.sharks = [];
         this.entityManager = null;

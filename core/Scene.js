@@ -11,6 +11,7 @@ class Scene {
         this.debrisManager = null;
         this.sharkHandler = null;
         this.foodSpawner = null;
+        this.seaweedManager = null;
         this.frameCount = 0;
         this.fpsDisplay = null;
         
@@ -106,23 +107,63 @@ class Scene {
             console.log("Creating ocean debris");
             this.debrisManager = new DebrisManager(this.scene, this.landscape);
 
+            // Initialize seaweed
+            console.log("Creating seaweed");
+            this.seaweedManager = new SeaweedManager(this.scene, this.landscape);
+            this.seaweedManager.initialize();
+
             // Initialize shark after landscape
             console.log("Creating shark handler");
-            this.sharkHandler = new SharkHandler(this.scene, this.landscape);
-
-            // Verify shark creation
-            if (this.sharkHandler && this.sharkHandler.sharks.length > 0) {
-                console.log("Shark created successfully");
-                
-                // Add shark to shadow casters immediately after creation
-                this.sharkHandler.sharks.forEach(shark => {
-                    if (shark.mesh) {
-                        console.log("Adding shark to shadow casters");
-                        this.dayNightCycle.addShadowCaster(shark.mesh);
+            try {
+                // Check if YUKA is available
+                if (typeof YUKA === 'undefined') {
+                    console.error("YUKA library is not loaded! Cannot create shark.");
+                } else {
+                    console.log("YUKA library is available, proceeding with shark creation");
+                    
+                    // Create shark handler with explicit error handling
+                    this.sharkHandler = new SharkHandler(this.scene, this.landscape);
+                    
+                    // Verify shark creation with detailed logging
+                    if (this.sharkHandler) {
+                        console.log("SharkHandler created successfully");
+                        
+                        if (this.sharkHandler.sharks && this.sharkHandler.sharks.length > 0) {
+                            console.log(`Created ${this.sharkHandler.sharks.length} sharks successfully`);
+                            
+                            // Add shark to shadow casters immediately after creation
+                            this.sharkHandler.sharks.forEach((shark, index) => {
+                                console.log(`Checking shark ${index}...`);
+                                if (shark) {
+                                    console.log(`Shark ${index} exists`);
+                                    if (shark.mesh) {
+                                        console.log(`Shark ${index} has mesh: ${shark.mesh.name}`);
+                                        this.dayNightCycle.addShadowCaster(shark.mesh);
+                                    } else {
+                                        console.error(`Shark ${index} has no mesh!`);
+                                    }
+                                } else {
+                                    console.error(`Shark ${index} is null or undefined!`);
+                                }
+                            });
+                        } else {
+                            console.error("SharkHandler created but no sharks were initialized!");
+                            // Force create a shark
+                            console.log("Attempting to manually create a shark...");
+                            const shark = this.sharkHandler.createShark();
+                            if (shark && shark.mesh) {
+                                console.log("Shark created manually with mesh:", shark.mesh.name);
+                                this.dayNightCycle.addShadowCaster(shark.mesh);
+                            } else {
+                                console.error("Failed to manually create shark!");
+                            }
+                        }
+                    } else {
+                        console.error("Failed to create SharkHandler!");
                     }
-                });
-            } else {
-                console.error("Failed to create shark!");
+                }
+            } catch (error) {
+                console.error("Error during shark initialization:", error);
             }
 
             // Initialize entity handler
@@ -191,6 +232,11 @@ class Scene {
                 // Update food spawner
                 if (this.foodSpawner) {
                     this.foodSpawner.update();
+                }
+                
+                // Update seaweed manager if needed
+                if (this.seaweedManager) {
+                    this.seaweedManager.update();
                 }
                 
                 // Update shadows based on configured interval
