@@ -1,0 +1,15 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Project Documentation
+
+Key project documentation should be maintained in the `memory-bank/` directory (to be created):
+
+*   **Game Design:** [memory-bank/@game-design-document.md](mdc:memory-bank/@game-design-document.md)
+*   **Architecture:** [memory-bank/@architecture.md](mdc:memory-bank/@architecture.md)
+
+Refer to these documents for high-level design, features, and technical architecture.
+
+*Note: The `game-design-document.md` currently exists at [.cursor/rules/game-design-document.md](mdc:.cursor/rules/game-design-document.md) but is empty and should ideally be moved and populated.*

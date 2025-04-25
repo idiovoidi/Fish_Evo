@@ -1,0 +1,14 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Main Components & Entry Point
+
+*   **Entry Point:** The simulation is likely loaded and run via [index.html](mdc:index.html).
+*   **Environment:** 
+    *   The day/night cycle is managed by [Day-Night_Cycle.js](mdc:Day-Night_Cycle.js).
+    *   The landscape/background is handled by [landscape.js](mdc:landscape.js).
+*   **Spawning:** Food spawning logic resides in [food_spawner.js](mdc:food_spawner.js).
+*   **Debugging/Inspection:** An inspector tool seems available in [inspector.js](mdc:inspector.js).
+
