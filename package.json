@@ -7,6 +7,7 @@
         "start": "npx http-server . -o"
     },
     "dependencies": {
+        "ecsy": "^0.4.3",
         "http-server": "^14.1.1"
     }
-} 
+}

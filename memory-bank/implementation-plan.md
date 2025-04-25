@@ -20,26 +20,33 @@ The primary goal is to establish a robust, modular, and scalable architecture (l
 
 ### Phase 1: Assessment & Architecture Definition
 
+**Status: Completed** (Initial assessment done, target architecture defined. Detailed code review continues iteratively during Phase 2).
+
 1.  **Detailed Code Review:**
     *   Analyze key files (`fish.js`, `shark.js`, etc.) and directories (`ecs/`, `core/`, `ai/`) to understand current implementation, interactions, inheritance patterns, and data flow.
     *   Identify core systems (e.g., movement, collision, eating, breeding, AI decision-making) and how they are currently implemented.
     *   Assess the current state, suitability, and potential limitations of the `ecs/` implementation.
     *   Evaluate potential performance bottlenecks and scalability concerns, especially regarding entity management and system processing.
+    *   **Status:** Decided on **`ecsy`**. Fallback is custom implementation.
+    *   Determine how existing entity files (`fish.js`, etc.) will map to the chosen ECS structure (e.g., as entity factories/archetypes defining component sets).
 2.  **Define Target Architecture (ECS):**
     *   **Recommendation:** Evaluate and plan to adopt the `ecsy` library (https://github.com/ecsyjs/ecsy).
     *   **Fallback:** If `ecsy` is unsuitable, define a clear custom ECS structure (e.g., distinct `components/`, `systems/`, and entity factory modules/functions).
-    *   Determine how existing entity files (`fish.js`, etc.) will map to the chosen ECS structure (e.g., as entity factories/archetypes defining component sets).
 3.  **Establish Documentation:**
+    *   **Status:** `architecture.md` and `tech-stack.md` populated with initial target details. `game-design-document.md` updated.
     *   Populate `memory-bank/architecture.md` with the **chosen target architecture** (ECS library or custom structure), key design patterns, data flow, and component/system organization.
     *   Populate `memory-bank/tech-stack.md` with key libraries (`ecsy` if chosen, rendering library if any, etc.).
     *   Continue refining `memory-bank/game-design-document.md` as needed.
 
 ### Phase 2: Core Refactoring & Foundation Building
 
+**Status: In Progress**
+
 **Priority:** Implement the target ECS structure defined in Phase 1.
 
 1.  **Implement/Integrate ECS:**
-    *   Set up `ecsy` or the custom ECS framework.
+    *   **Status:** `ecsy` installed, directory structure (`ecs/components`, `ecs/systems`, `utils`) created.
+    *   Set up `ecsy` world and basic simulation loop.
     *   Define core components (`Position`, `Velocity`, `Hunger`, `Renderable`, etc.) based on Phase 1 analysis.
 2.  **Refactor Core Entities & Systems:**
     *   Convert existing entity classes (`fish.js`, etc.) into entity factories/archetypes within the ECS framework.
@@ -81,5 +88,5 @@ The primary goal is to establish a robust, modular, and scalable architecture (l
 ## 4. Next Immediate Actions
 
 1.  **Begin Phase 1:** Start the detailed code review (`fish.js`, `ecs/`, `core/`, `ai/`).
-2.  **Evaluate ECS:** Research `ecsy` more thoroughly in the context of the existing code. Decide on `ecsy` vs. custom structure.
-3.  **Document Architecture:** Start populating `memory-bank/architecture.md` with the chosen target structure.
+2. **Evaluate ECS:** Research `ecsy` more thoroughly in the context of the existing code. Decide on `ecsy` vs. custom structure.
+3. **Document Architecture:** Start populating `memory-bank/architecture.md` with the chosen target structure.

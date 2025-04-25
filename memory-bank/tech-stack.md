@@ -8,7 +8,7 @@
 *   **Node.js:** Used for dependency management (npm) and potentially build processes or local development tools.
 
 ## Architecture Framework
-*   **ECS Library:** **`ecsy`** (Primary candidate - evaluation pending) OR a custom implementation.
+*   **ECS Library:** **`ecsy`** (https://github.com/ecsyjs/ecsy) - Chosen implementation.
 
 ## Rendering
 *   **TBD:** Likely **HTML5 Canvas API** or potentially a library like **PixiJS** or **Three.js** if more complex rendering or 3D is required later. Decision pending based on visual requirements.
