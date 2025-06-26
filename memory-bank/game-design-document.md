@@ -2,15 +2,38 @@
 
 ## Core Concept
 
-The goal is to create a fish tank simulation where fish exhibit basic life behaviors, allowing for the observation of emergent ecosystem dynamics and potentially evolutionary processes.
+The goal is to create a fish tank simulation focused on **evolutionary processes**. We will observe how fish with heritable genetic traits adapt and survive in a simulated aquatic ecosystem.
 
 Key simulated behaviors include:
+*   **Survival:** Fish must manage their **Energy** by consuming food.
+*   **Breeding:** Fish reproduce, passing their genetic traits to offspring with a chance of mutation.
+*   **Interaction:** Fish will interact with food, other fish, and predators.
 
-*   **Hunger:** Fish have a simulated hunger drive.
-*   **Eating:** Fish can consume food to satiate hunger.
-*   **Breeding:** Fish have the ability to reproduce.
+This document covers the high-level vision. For specific numbers, thresholds, and rules, see the **[Game Mechanics](mdc:memory-bank/game-mechanics.md)** document. For a detailed breakdown of heritable traits, see the **[Genetic Traits](mdc:memory-bank/genetic-traits.md)** document.
 
-These mechanics will allow for the simulation of a basic ecosystem.
+## Core Gameplay Loop & Features
+
+### 1. Evolution and Genetics (Core Feature)
+*   Fish possess a set of genetic traits (e.g., size, speed, metabolism) that dictate their abilities and attributes.
+*   These traits are passed from parent to offspring via breeding, with a small chance of random mutation.
+*   The simulation allows the user to observe how natural selection unfolds as certain traits prove more or less advantageous for survival and reproduction.
+
+### 2. Ecosystem Dynamics
+*   **Population Tracking:** The simulation will track population dynamics, observing how different genetic lineages succeed or fail over time.
+*   **Food Chain:** A simple food chain exists: food is generated, fish consume food, and predators (sharks) consume fish.
+*   **Emergent Behavior:** The goal is to observe complex ecosystem patterns that emerge from the simple rules governing individual entities.
+
+### 3. User Interaction
+*   **Observer Role:** The user primarily acts as an observer, watching the ecosystem evolve.
+*   **Limited Influence:** The user can influence the simulation by manually dropping food and can inspect individual entities to see their stats and genetic makeup.
+
+## Entities Overview
+
+*   **Fish:** The central evolving organism.
+*   **Food:** The primary energy resource.
+*   **Shark:** A predator that creates selective pressure on the fish population.
+*   **Crab:** An ambient creature that adds life to the environment.
+*   **Flora (Seaweed/Coral):** Environmental set-dressing.
 
 ## Initial Mechanics (Prototyping Phase)
 

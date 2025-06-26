@@ -20,3 +20,20 @@ My Answers
 3. Error handling should not be within Python, this should be removed as we are using Javascript. As for the alternative to decorators let's go with whatever is best based on your suggestions for the overall project. 
 4. Currently we are doing small scale simulations for testing purposes but later plan to scale upwards once the core functionality and components are working as intended. 
 5. The refactoring should be modular, scalable and logical. Simplifying the code in easily digestible components is the primary goal to make future plans and iterations easier without getting lost in spaghetti code. 
+
+
+
+
+----
+Answers to questions 2, 
+1. Core Mechanics & Quantification
+2. document mentions both "hunger" and a potential "energy" concept. They can be ambiguous. 
+3. What are the key genetic traits we should focus on first? 
+4. Should sharks just be simple predators that hunt fish
+5. What role does the user play? Are they purely a passive observer?
+
+1. @game-mechanics.md I've created a new file to note the game mechanics so the @game-design-document.md serves as a broad conceptual idea rather than getting bogged down in specifics. 
+2. Perhaps we can simplify hunger and energy into one for now. A dual system would give more flexibility but might over complicate things and result in bugs.
+3. Yes, we should have the evolution of the fish as a primary component @genetic-traits.md reference all the genetic traits here for planning. 
+4. Sharks should hunt and eat fish, crabs are just decorative for now to make the ocean feel more alive.
+5. Primarily passive observer with the option of dropping food and inspecting various entities.
