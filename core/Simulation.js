@@ -19,10 +19,14 @@ import { HungerSystem } from '../ecs/systems/HungerSystem.js';
 import { RenderSystem } from '../ecs/systems/RenderSystem.js';
 import { BabylonMeshSystem } from '../ecs/systems/BabylonMeshSystem.js';
 import { FoodSpawnerSystem } from '../ecs/systems/FoodSpawnerSystem.js';
+import { BreedingSystem } from '../ecs/systems/BreedingSystem.js';
+import { SharkSystem } from '../ecs/systems/SharkSystem.js';
+import { SpatialHashSystem } from '../ecs/systems/SpatialHashSystem.js';
 
 // Import entity factories
 import { FishFactory } from '../ecs/entities/FishFactory.js';
 import { FoodFactory } from '../ecs/entities/FoodFactory.js';
+import { SharkFactory } from '../ecs/entities/SharkFactory.js';
 
 /**
  * Core simulation class that manages the ECS world and game loop
@@ -81,11 +85,14 @@ export class Simulation {
   registerSystems() {
     // Register all systems in the order they should execute
     this.world
-      .registerSystem(BabylonMeshSystem) // First to create meshes
+      .registerSystem(SpatialHashSystem)  // Build spatial grid
+      .registerSystem(BabylonMeshSystem)
       .registerSystem(FoodSpawnerSystem) // Then spawn food
       .registerSystem(HungerSystem)      // Update hunger states
-      .registerSystem(MovementSystem)    // Move entities
-      .registerSystem(RenderSystem);     // Update visual positions
+      .registerSystem(BreedingSystem)     // Handle breeding & offspring
+      .registerSystem(SharkSystem)         // Predator logic
+      .registerSystem(MovementSystem)      // Move entities
+      .registerSystem(RenderSystem);        // Update visual positions
   }
   
   /**
@@ -136,6 +143,22 @@ export class Simulation {
     // Create some initial food
     for (let i = 0; i < 10; i++) {
       const food = FoodFactory.create(this.world);
+    }
+    
+    // Create some sharks
+    for (let i = 0; i < 3; i++) {
+      const shark = SharkFactory.create(this.world, {
+        position: {
+          x: (Math.random() - 0.5) * 60,
+          y: 5 + Math.random() * 20,
+          z: (Math.random() - 0.5) * 60
+        },
+        velocity: {
+          x: (Math.random() - 0.5) * 2,
+          y: (Math.random() - 0.5) * 2,
+          z: (Math.random() - 0.5) * 2
+        }
+      });
     }
   }
   

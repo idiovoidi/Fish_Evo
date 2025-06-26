@@ -1,5 +1,6 @@
 import { Renderable } from '../components/Renderable.js';
-import { FishTag, FoodTag } from '../components/Tags.js';
+import { FishTag, FoodTag, SharkTag } from '../components/Tags.js';
+import { Genetics } from '../components/Genetics.js';
 
 /**
  * BabylonMeshSystem - Creates and manages Babylon.js meshes for entities
@@ -9,6 +10,10 @@ export class BabylonMeshSystem extends window.ECSY.System {
     this.scene = null;
     this.fishModels = []; // Will store fish model templates to clone
     this.foodModels = []; // Will store food model templates to clone
+    this.fishPool = [];
+    this.foodPool = [];
+    this.sharkPool = [];
+    this.materialCache = new Map();
   }
   
   /**
@@ -45,6 +50,14 @@ export class BabylonMeshSystem extends window.ECSY.System {
     foodSphere.material = foodMaterial;
     foodSphere.setEnabled(false); // Hide the template
     this.foodModels.push(foodSphere);
+    
+    // Create shark model template
+    const sharkMesh = BABYLON.MeshBuilder.CreateBox("sharkTemplate", {size:3, height:1}, this.scene);
+    const sharkMat = new BABYLON.StandardMaterial("sharkMat", this.scene);
+    sharkMat.diffuseColor = new BABYLON.Color3(0.2,0.2,0.2);
+    sharkMesh.material = sharkMat;
+    sharkMesh.setEnabled(false);
+    this.sharkTemplate = sharkMesh;
   }
   
   execute(delta, time) {
@@ -53,14 +66,27 @@ export class BabylonMeshSystem extends window.ECSY.System {
     // Create meshes for new fish entities
     this.queries.newFish.added.forEach(entity => {
       const renderable = entity.getMutableComponent(Renderable);
-      const template = this.fishModels[0]; // Use the first template for now
-      
-      // Clone the template to create a new instance
-      const fishMesh = template.clone("fish_" + entity.id);
+      const genetics = entity.getComponent(Genetics);
+      let fishMesh;
+      if (this.fishPool.length) {
+        fishMesh = this.fishPool.pop();
+      } else {
+        fishMesh = this.fishModels[0].clone("fish_" + entity.id);
+      }
       fishMesh.setEnabled(true);
-      
-      // Store the mesh in the renderable component
       renderable.model = fishMesh;
+      // Apply / reuse material based on genetics color
+      if (genetics) {
+        const key = genetics.color.join(',');
+        let mat = this.materialCache.get(key);
+        if (!mat) {
+          mat = this.fishModels[0].material.clone("mat_" + key);
+          const [r,g,b]=genetics.color;
+          mat.diffuseColor = new BABYLON.Color3(r/255, g/255, b/255);
+          this.materialCache.set(key, mat);
+        }
+        fishMesh.material = mat;
+      }
     });
     
     // Create meshes for new food entities
@@ -79,6 +105,14 @@ export class BabylonMeshSystem extends window.ECSY.System {
       renderable.model = foodMesh;
     });
     
+    // Create meshes for new shark entities
+    this.queries.newShark.added.forEach(entity => {
+      const rend = entity.getMutableComponent(Renderable);
+      const mesh = this.sharkTemplate.clone("shark_"+entity.id);
+      mesh.setEnabled(true);
+      rend.model = mesh;
+    });
+    
     // Clean up removed entities
     this.queries.removed.removed.forEach(entity => {
       const renderable = entity.getComponent(Renderable);
@@ -93,5 +127,6 @@ export class BabylonMeshSystem extends window.ECSY.System {
 BabylonMeshSystem.queries = {
   newFish: { components: [Renderable, FishTag], listen: { added: true } },
   newFood: { components: [Renderable, FoodTag], listen: { added: true } },
+  newShark: { components: [Renderable, SharkTag], listen: { added: true } },
   removed: { components: [Renderable], listen: { removed: true } }
 }; 
