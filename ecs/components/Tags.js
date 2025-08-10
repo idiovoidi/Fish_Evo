@@ -1,5 +1,3 @@
-import { Component, Types } from 'ecsy';
-
 /**
  * TagComponent - Base class for tag components that mark entity types
  */

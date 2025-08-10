@@ -55,9 +55,12 @@ export class UIManager {
     this.scene.onPointerDown = (evt, pickInfo) => {
       if (pickInfo.hit && pickInfo.pickedMesh) {
         const pickedMesh = pickInfo.pickedMesh;
-        // Check if mesh is associated with an entity
-        if (pickedMesh.entity) {
-          this.selectEntity(pickedMesh.entity);
+        // Walk up parents to find .entity
+        let m = pickedMesh;
+        let ent = null;
+        while (m && !ent) { ent = m.entity || null; m = m.parent; }
+        if (ent) {
+          this.selectEntity(ent);
         } else {
           this.deselectEntity();
         }
@@ -71,9 +74,15 @@ export class UIManager {
    * Updates the main HUD with statistics.
    */
   updateHUD() {
-    const stats = this.simulation.world.stats;
+    let entityCount = '-';
+    try {
+      const stats = this.simulation?.world?.stats;
+      if (stats && typeof stats.numEntities === 'number') {
+        entityCount = stats.numEntities;
+      }
+    } catch (_) {}
     this.hudElement.innerHTML = `
-      Entities: ${stats.numEntities}<br>
+      Entities: ${entityCount}<br>
       FPS: ${this.scene.getEngine().getFps().toFixed(0)}
     `;
   }
@@ -105,26 +114,36 @@ export class UIManager {
       return;
     }
 
-    let html = `<h3>Entity #${this.selectedEntity.id}</h3>`;
-    for (const Comp of this.selectedEntity.getComponents()) {
-      const compName = Comp.constructor.name;
-      html += `<div class="component"><h4>${compName}</h4>`;
-      const schema = Comp.constructor.schema;
-      if (schema) {
-        for (const key in schema) {
-          let val = Comp[key];
-          if (typeof val === 'number') val = val.toFixed(2);
-          if (Array.isArray(val)) {
-            val = `[${val.map(v => typeof v === 'number' ? v.toFixed(2) : v).join(', ')}]`;
-            if (key === 'color') {
-              const [r,g,b] = Comp[key];
-              val += `<span class="genetics-color-swatch" style="background-color: rgb(${r},${g},${b});"></span>`;
+    let html = `<h3>Entity #${this.selectedEntity.id || ''}</h3>`;
+    try {
+      const components = this.selectedEntity.getComponents?.();
+      // If using ECSY, getComponents returns a map; fallback to entity.getComponentTypes
+      const compList = Array.isArray(components) ? components : (this.selectedEntity.getComponentTypes ? this.selectedEntity.getComponentTypes() : []);
+      compList.forEach(CompTypeOrInstance => {
+        // Normalize to instance and schema
+        const instance = CompTypeOrInstance.constructor?.schema ? CompTypeOrInstance : this.selectedEntity.getComponent(CompTypeOrInstance);
+        if (!instance) return;
+        const compName = instance.constructor.name;
+        html += `<div class="component"><h4>${compName}</h4>`;
+        const schema = instance.constructor.schema;
+        if (schema) {
+          for (const key in schema) {
+            let val = instance[key];
+            if (typeof val === 'number') val = val.toFixed(2);
+            if (Array.isArray(val)) {
+              val = `[${val.map(v => typeof v === 'number' ? v.toFixed(2) : v).join(', ')}]`;
+              if (key === 'color') {
+                const [r,g,b] = instance[key];
+                val += `<span class="genetics-color-swatch" style="background-color: rgb(${r},${g},${b});"></span>`;
+              }
             }
+            html += `<div class="prop"><span class="prop-key">${key}:</span> <span class="prop-val">${val}</span></div>`;
           }
-          html += `<div class="prop"><span class="prop-key">${key}:</span> <span class="prop-val">${val}</span></div>`;
         }
-      }
-      html += `</div>`;
+        html += `</div>`;
+      });
+    } catch (e) {
+      html += `<div class="component"><h4>Error</h4><div class="prop"><span class="prop-key">message:</span> <span class="prop-val">${e?.message || e}</span></div></div>`;
     }
 
     this.inspectorElement.innerHTML = html;

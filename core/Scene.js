@@ -112,77 +112,7 @@ class Scene {
             this.seaweedManager = new SeaweedManager(this.scene, this.landscape);
             this.seaweedManager.initialize();
 
-            // Initialize shark after landscape
-            console.log("Creating shark handler");
-            try {
-                // Check if YUKA is available
-                if (typeof YUKA === 'undefined') {
-                    console.error("YUKA library is not loaded! Cannot create shark.");
-                } else {
-                    console.log("YUKA library is available, proceeding with shark creation");
-                    
-                    // Create shark handler with explicit error handling
-                    this.sharkHandler = new SharkHandler(this.scene, this.landscape);
-                    
-                    // Verify shark creation with detailed logging
-                    if (this.sharkHandler) {
-                        console.log("SharkHandler created successfully");
-                        
-                        if (this.sharkHandler.sharks && this.sharkHandler.sharks.length > 0) {
-                            console.log(`Created ${this.sharkHandler.sharks.length} sharks successfully`);
-                            
-                            // Add shark to shadow casters immediately after creation
-                            this.sharkHandler.sharks.forEach((shark, index) => {
-                                console.log(`Checking shark ${index}...`);
-                                if (shark) {
-                                    console.log(`Shark ${index} exists`);
-                                    if (shark.mesh) {
-                                        console.log(`Shark ${index} has mesh: ${shark.mesh.name}`);
-                                        this.dayNightCycle.addShadowCaster(shark.mesh);
-                                    } else {
-                                        console.error(`Shark ${index} has no mesh!`);
-                                    }
-                                } else {
-                                    console.error(`Shark ${index} is null or undefined!`);
-                                }
-                            });
-                        } else {
-                            console.error("SharkHandler created but no sharks were initialized!");
-                            // Force create a shark
-                            console.log("Attempting to manually create a shark...");
-                            const shark = this.sharkHandler.createShark();
-                            if (shark && shark.mesh) {
-                                console.log("Shark created manually with mesh:", shark.mesh.name);
-                                this.dayNightCycle.addShadowCaster(shark.mesh);
-                            } else {
-                                console.error("Failed to manually create shark!");
-                            }
-                        }
-                    } else {
-                        console.error("Failed to create SharkHandler!");
-                    }
-                }
-            } catch (error) {
-                console.error("Error during shark initialization:", error);
-            }
-
-            // Initialize entity handler
-            console.log("Initializing entities");
-            this.entityHandler = new EntityHandler(this.scene, this.landscape);
-            await this.entityHandler.initialize();
-            
-            // Register entities for shadows
-            if (this.entityHandler.crabManager) {
-                this.entityHandler.crabManager.crabs.forEach(crab => {
-                    if (crab.renderComponent) {
-                        this.dayNightCycle.addShadowCaster(crab.renderComponent);
-                    }
-                });
-            }
-
-            // Initialize food spawner after landscape
-            console.log("Initializing food spawner");
-            this.foodSpawner = new FoodSpawner(this.scene, this.landscape);
+            // (Shark, legacy entities, and legacy food spawner are handled by ECS; remove legacy initializations)
 
             // Enhanced water material adjustments based on time of day
             if (this.landscape.waterBox) {
@@ -205,34 +135,13 @@ class Scene {
                 });
             }
 
-            // Initialize fish inspector after all other components
-            console.log("Initializing fish inspector");
-            this.fishInspector = new FishInspector(this);
+            // Fish inspector handled by ECS UIManager; legacy inspector removed
 
             console.log("Entity initialization complete");
 
             // Update animation loop to include food spawner
             this.scene.onBeforeRenderObservable.add(() => {
                 this.frameCount++;
-                
-                // Update entities based on their update interval
-                if (this.entityHandler && this.frameCount % SimulationConfig.entities.fish.updateInterval === 0) {
-                    this.entityHandler.update();
-                }
-                
-                // Update shark handler
-                if (this.sharkHandler) {
-                    if (this.frameCount % SimulationConfig.entities.fish.updateInterval === 0) {
-                        this.sharkHandler.update();
-                    }
-                } else {
-                    console.warn("SharkHandler not initialized");
-                }
-
-                // Update food spawner
-                if (this.foodSpawner) {
-                    this.foodSpawner.update();
-                }
                 
                 // Update seaweed manager if needed
                 if (this.seaweedManager) {
@@ -293,6 +202,10 @@ class Scene {
 console.log("Starting application");
 const canvas = document.getElementById('renderCanvas');
 const sceneManager = new Scene(canvas);
+// Expose globally so ECS bootstrap can attach later
+if (typeof window !== 'undefined') {
+    window.sceneManager = sceneManager;
+}
 
 sceneManager.initialize().then(() => {
     console.log("Scene initialization complete, starting render loop");

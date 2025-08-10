@@ -8,6 +8,8 @@ import { Health } from '../ecs/components/Health.js';
 import { Age } from '../ecs/components/Age.js';
 import { Hunger } from '../ecs/components/Hunger.js';
 import { Behavior } from '../ecs/components/Behavior.js';
+import { Genetics } from '../ecs/components/Genetics.js';
+import { PredatorState } from '../ecs/components/PredatorState.js';
 import { 
   TagComponent, FishTag, SharkTag, CrabTag, 
   FoodTag, SeaweedTag, CoralTag, DebrisTag 
@@ -73,6 +75,8 @@ export class Simulation {
       .registerComponent(Age)
       .registerComponent(Hunger)
       .registerComponent(Behavior)
+      .registerComponent(Genetics)
+      .registerComponent(PredatorState)
       .registerComponent(TagComponent)
       .registerComponent(FishTag)
       .registerComponent(SharkTag)
@@ -109,12 +113,14 @@ export class Simulation {
     // Pass the scene to systems that need it
     this.babylonMeshSystem.setScene(scene);
     
-    // Configure food spawner
+    // Configure food spawner from SimulationConfig when available
+    const cfg = (typeof window !== 'undefined' && window.SimulationConfig) ? window.SimulationConfig : null;
+    const foodCfg = cfg?.food || {};
     this.foodSpawnerSystem.updateConfig({
-      spawnInterval: 2000,  // 2 seconds
+      spawnInterval: foodCfg.spawnInterval || 2000,
       spawnMinCount: 1,
       spawnMaxCount: 2,
-      maxFoodCount: 30
+      maxFoodCount: foodCfg.maxParticles || 30
     });
     
     // Create initial entities

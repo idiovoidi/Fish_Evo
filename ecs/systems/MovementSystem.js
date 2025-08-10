@@ -5,6 +5,12 @@ import { Velocity } from '../components/Velocity.js';
  * Movement System - Updates entity positions based on velocity
  */
 export class MovementSystem extends window.ECSY.System {
+  init() {
+    const cfg = (typeof window !== 'undefined' && window.SimulationConfig) ? window.SimulationConfig : null;
+    const b = cfg?.world?.bounds;
+    this.bounds = b || { minX: -50, maxX: 50, minY: 0, maxY: 30, minZ: -50, maxZ: 50 };
+  }
+
   execute(delta, time) {
     // Convert delta to seconds for consistent movement speed
     const deltaTime = delta / 1000;
@@ -26,20 +32,14 @@ export class MovementSystem extends window.ECSY.System {
   
   // Simple boundary constraint to keep entities within a bounding box
   applyBoundaryConstraints(position) {
-    // Default boundaries - can be made configurable later
-    const bounds = {
-      minX: -50, maxX: 50,
-      minY: 0, maxY: 30,
-      minZ: -50, maxZ: 50
-    };
-    
-    // Apply constraints with a bounce effect
-    if (position.x < bounds.minX) position.x = bounds.minX;
-    if (position.x > bounds.maxX) position.x = bounds.maxX;
-    if (position.y < bounds.minY) position.y = bounds.minY;
-    if (position.y > bounds.maxY) position.y = bounds.maxY;
-    if (position.z < bounds.minZ) position.z = bounds.minZ;
-    if (position.z > bounds.maxZ) position.z = bounds.maxZ;
+    const b = this.bounds;
+    if (!b) return;
+    if (position.x < b.minX) position.x = b.minX;
+    if (position.x > b.maxX) position.x = b.maxX;
+    if (position.y < b.minY) position.y = b.minY;
+    if (position.y > b.maxY) position.y = b.maxY;
+    if (position.z < b.minZ) position.z = b.minZ;
+    if (position.z > b.maxZ) position.z = b.maxZ;
   }
 }
 

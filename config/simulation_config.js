@@ -48,9 +48,21 @@ const SimulationConfig = {
             nightDensity: 0.03
         }
     },
+  world: {
+    bounds: {
+      minX: -50, maxX: 50,
+      minY: 0, maxY: 30,
+      minZ: -50, maxZ: 50
+    }
+  },
     debug: {
         showNavMesh: false,
         logSpawnPositions: false,
         showFPS: true
     }
-}; 
+};
+
+// Expose to global scope for modules that access via window.SimulationConfig
+if (typeof window !== 'undefined') {
+  window.SimulationConfig = window.SimulationConfig || SimulationConfig;
+}

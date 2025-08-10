@@ -13,14 +13,14 @@ The simulation will be built using an **Entity-Component-System (ECS)** architec
     *   **Components:** Plain data objects holding state (e.g., `Position`, `Velocity`, `Hunger`, `Renderable`). Stored likely in `ecs/components/`.
     *   **Systems:** Contain the application logic, operating on entities possessing specific sets of components (e.g., `MovementSystem`, `HungerSystem`, `RenderSystem`). Stored likely in `ecs/systems/`.
 
-## Proposed ECS Implementation
+## ECS Implementation
 
-*   **Primary Recommendation:** Utilize the **`ecsy`** library (https://github.com/ecsyjs/ecsy). This provides a robust, performant, and well-structured framework for ECS in JavaScript.
-*   **Fallback:** If `ecsy` proves unsuitable after evaluation, a custom ECS framework will be implemented following the core principles above, with dedicated modules for components, systems, and entity management/factories.
+*   **Primary Architecture:** Utilizes the **`ecsy`** library (global `window.ECSY`) for ECS world, components, and systems. Babylon.js provides rendering and scene management.
+*   **Bootstrap:** `index.html` loads Babylon and ECSY; `core/Scene.js` initializes the Babylon scene; `core/start-ecs.js` starts `core/Simulation.js` once the scene is ready.
 
 ## Entity Management
 
-*   Existing entity classes (e.g., `fish.js`) will be refactored into **Entity Factories** or **Archetypes**. These will be functions or configurations responsible for creating new entities and attaching the necessary initial set of components.
+*   Entities are created via **Entity Factories** in `ecs/entities/*` (e.g., `FishFactory`, `FoodFactory`, `SharkFactory`). Legacy classes like `fish.js` and `shark.js` have been removed.
 
 ## Error Handling
 
@@ -34,4 +34,43 @@ The simulation will be built using an **Entity-Component-System (ECS)** architec
     *   Execute ECS systems in a defined order (e.g., Input -> AI -> Physics/Movement -> Rendering).
     *   Systems query for relevant entities and update their components.
     *   Handle entity creation/deletion based on system logic (e.g., breeding, starvation).
-3.  **Rendering:** A dedicated `RenderSystem` queries entities with `Renderable` and `Position` components (and others as needed) to draw them on screen (likely using HTML5 Canvas or WebGL, specific library TBD).
+3.  **Rendering:** `BabylonMeshSystem` creates/clones meshes (loads `models/fish.gltf` for fish template and falls back to a sphere), while `RenderSystem` syncs `Position` to mesh transforms.
+
+## Finalized ECS Wiring
+
+1. Bootstrap
+   - `index.html` includes Babylon, GUI, Recast, ECSY. It loads `core/Scene.js`, then `core/start-ecs.js` (ES module) to start the ECS `Simulation`.
+   - `core/Scene.js` sets up camera, post effects, day/night, terrain, coral, debris, seaweed and exposes `window.sceneManager`.
+
+2. Simulation
+   - `core/Simulation.js` creates the ECS world, registers components/systems, applies configuration from `window.SimulationConfig`, creates initial entities, and runs the loop (`world.execute`).
+
+3. Systems
+   - `SpatialHashSystem` for proximity.
+   - `BabylonMeshSystem` for mesh creation and material/color application; ensures `mesh.entity` is set for picking.
+   - `FoodSpawnerSystem`, `HungerSystem`, `BreedingSystem`, `SharkSystem`, `MovementSystem`, `RenderSystem` for behaviors and transforms.
+
+4. UI
+   - `core/UIManager.js` provides HUD and inspector for ECS entities using `mesh.entity` mapping.
+
+## Components (Schema)
+
+- `Position { x, y, z }`
+- `Velocity { x, y, z, maxSpeed }`
+- `Renderable { model, scale, visible }`
+- `Health { current, max, regenRate, isDead? }`
+- `Age { value, maturityAge, maxAge, isAdult? }`
+- `Hunger { value, rate }`
+- `Behavior { schoolingPreference, personalSpace, isHungry?, lastBreedTime?, breedCooldown? }`
+- `Genetics { size, speed, metabolism, color:[r,g,b] }`
+- `PredatorState { lastBiteTime, biteCooldown }`
+- Tags: `FishTag`, `SharkTag`, `CrabTag`, `FoodTag`, `SeaweedTag`, `CoralTag`, `DebrisTag`
+
+## Configuration
+
+`config/simulation_config.js` exposes `window.SimulationConfig` used by `core/Scene.js` and injected into systems via `Simulation.initialize` (e.g., `FoodSpawnerSystem.updateConfig`).
+
+## Removed Legacy Code
+
+Removed redundant YUKA/manager scripts in favor of ECS-only runtime:
+`entities/entity_handler.js`, `fish.js`, `shark.js`, `food_spawner.js`, `food.js`, `inspector.js`, `models/fish/BasicFish.js`.

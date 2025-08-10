@@ -29,6 +29,8 @@
     <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
     <script src="https://cdn.babylonjs.com/recast.js"></script>
     <script src="https://unpkg.com/yuka"></script>
+    <!-- ECSY UMD for window.ECSY used by Simulation/world -->
+    <script src="https://unpkg.com/ecsy/build/ecsy.js"></script>
     
     <!-- Initialize app only after libraries are loaded -->
     <script>
@@ -57,22 +59,16 @@
 
                 console.log("Loading application scripts...");
                 
-                // Load application scripts in order
+                // Load application scripts in order (legacy gameplay scripts removed; ECS will handle logic)
                 const scripts = [
                     'core/Camera.js',
                     'config/simulation_config.js',
                     'Day-Night_Cycle.js',
-                    'fish.js',
                     'crab.js',
                     'landscape.js',
                     'coral.js',
-                    'food.js',
-                    'food_spawner.js',
-                    'inspector.js',
                     'ocean_debris.js',
-                    'shark.js',
                     'seaweed.js',
-                    'entities/entity_handler.js',
                     'core/Scene.js'
                 ];
 
@@ -97,6 +93,12 @@
                 }
                 
                 console.log("All scripts loaded successfully");
+
+                // Start ECS after scene is initialized by loading module bootstrap
+                const moduleScript = document.createElement('script');
+                moduleScript.type = 'module';
+                moduleScript.src = 'core/start-ecs.js';
+                document.body.appendChild(moduleScript);
             } catch (error) {
                 console.error('Error during script loading:', error);
                 alert(`Failed to load required scripts: ${error.message}\nPlease refresh the page.`);
