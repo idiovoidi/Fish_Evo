@@ -87,6 +87,7 @@ export class BabylonMeshSystem extends window.ECSY.System {
         }
         fishMesh.material = mat;
       }
+      renderable.model.entity = entity;
     });
     
     // Create meshes for new food entities
@@ -103,6 +104,7 @@ export class BabylonMeshSystem extends window.ECSY.System {
       
       // Store the mesh in the renderable component
       renderable.model = foodMesh;
+      renderable.model.entity = entity;
     });
     
     // Create meshes for new shark entities
@@ -111,6 +113,7 @@ export class BabylonMeshSystem extends window.ECSY.System {
       const mesh = this.sharkTemplate.clone("shark_"+entity.id);
       mesh.setEnabled(true);
       rend.model = mesh;
+      renderable.model.entity = entity;
     });
     
     // Clean up removed entities

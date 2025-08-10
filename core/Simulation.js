@@ -28,6 +28,8 @@ import { FishFactory } from '../ecs/entities/FishFactory.js';
 import { FoodFactory } from '../ecs/entities/FoodFactory.js';
 import { SharkFactory } from '../ecs/entities/SharkFactory.js';
 
+import { UIManager } from './UIManager.js';
+
 /**
  * Core simulation class that manages the ECS world and game loop
  */
@@ -54,6 +56,8 @@ export class Simulation {
     // Wrap methods with error handling
     this.update = withErrorHandler(this.update.bind(this), 'Simulation.update');
     this.initialize = withErrorHandler(this.initialize.bind(this), 'Simulation.initialize');
+
+    this.uiManager = null;
   }
   
   /**
@@ -118,6 +122,8 @@ export class Simulation {
     
     // Start the game loop
     this.start();
+
+    this.uiManager = new UIManager(scene, this);
   }
   
   /**
