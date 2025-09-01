@@ -139,6 +139,9 @@ export class Simulation {
     this.start();
 
     this.uiManager = new UIManager(scene, this);
+    
+    // Make UIManager globally accessible for button callbacks
+    window.uiManager = this.uiManager;
   }
   
   /**
