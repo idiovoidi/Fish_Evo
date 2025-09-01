@@ -10,6 +10,7 @@ export class BabylonMeshSystem extends window.ECSY.System {
     this.scene = null;
     this.fishModels = []; // Will store fish model templates to clone (sphere fallback)
     this.fishTemplate = null; // glTF-based fish template (TransformNode)
+    this.fishPrimitiveTemplate = null; // Procedural primitive fish (merged mesh)
     this.foodModels = []; // Will store food model templates to clone
     this.fishPool = [];
     this.foodPool = [];
@@ -43,30 +44,55 @@ export class BabylonMeshSystem extends window.ECSY.System {
     fishSphere.setEnabled(false); // Hide the template
     this.fishModels.push(fishSphere);
 
-    // Load glTF fish model as primary template (gracefully fallback on error)
+    // Procedural primitive fish template (merged mesh)
+    try {
+      const body = BABYLON.MeshBuilder.CreateCapsule('pf_body', { radius: 0.2, height: 1.0 }, this.scene);
+      const tail = BABYLON.MeshBuilder.CreateCylinder('pf_tail', { diameterTop: 0.35, diameterBottom: 0, height: 0.45 }, this.scene);
+      tail.rotation.x = Math.PI / 2;
+      tail.position.z = -0.7;
+      const finL = BABYLON.MeshBuilder.CreateCylinder('pf_finL', { diameterTop: 0.15, diameterBottom: 0, height: 0.25 }, this.scene);
+      finL.rotation.z = -Math.PI/4; finL.position.set(0.25, 0, 0);
+      const finR = finL.clone('pf_finR'); finR.rotation.z = Math.PI/4; finR.position.x = -0.25;
+      const fishMerged = BABYLON.Mesh.MergeMeshes([body, tail, finL, finR], true, true, undefined, false, true);
+      fishMerged.name = 'fishPrimitiveTemplate';
+      const pfMat = new BABYLON.StandardMaterial('pf_mat', this.scene);
+      pfMat.diffuseColor = new BABYLON.Color3(0.5, 0.8, 1.0);
+      fishMerged.material = pfMat;
+      fishMerged.setEnabled(false);
+      this.fishPrimitiveTemplate = fishMerged;
+    } catch (e) {
+      console.warn('Failed to create primitive fish; fallback sphere will be used.', e);
+    }
+
+    // Load remote GLB (Barramundi) first; fallback to local stub; then procedural/sphere
+    const attachAsTemplate = (meshes) => {
+      if (!meshes || meshes.length === 0) return;
+      const root = new BABYLON.TransformNode("fishTemplate", this.scene);
+      meshes.forEach(m => { if (m && m !== root) { m.setEnabled(false); m.parent = root; } });
+      root.setEnabled(false);
+      this.fishTemplate = root;
+    };
+
+    const loadLocalFallback = () => {
+      BABYLON.SceneLoader.ImportMesh(
+        "",
+        "models/",
+        "fish.gltf",
+        this.scene,
+        (meshes) => attachAsTemplate(meshes),
+        null,
+        () => { this.fishTemplate = null; }
+      );
+    };
+
     BABYLON.SceneLoader.ImportMesh(
       "",
-      "models/",
-      "fish.gltf",
+      "",
+      "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/BarramundiFish/glTF-Binary/BarramundiFish.glb",
       this.scene,
-      (meshes /*, ps, skels, ags */) => {
-        if (!meshes || meshes.length === 0) return;
-        const root = new BABYLON.TransformNode("fishTemplate", this.scene);
-        // Parent imported meshes to template root
-        meshes.forEach(m => {
-          if (m && m !== root) {
-            m.setEnabled(false);
-            m.parent = root;
-          }
-        });
-        root.setEnabled(false);
-        this.fishTemplate = root;
-      },
+      (meshes) => attachAsTemplate(meshes),
       null,
-      (_scene, message /*, exception */) => {
-        console.warn("Fish glTF not available, using sphere fallback:", message);
-        this.fishTemplate = null;
-      }
+      () => loadLocalFallback()
     );
     
     // Create food model template
@@ -95,7 +121,7 @@ export class BabylonMeshSystem extends window.ECSY.System {
       const renderable = entity.getMutableComponent(Renderable);
       const genetics = entity.getComponent(Genetics);
 
-      // Prefer glTF template when available; otherwise fallback sphere
+      // Prefer glTF template when available; else use primitive merged mesh; else fallback sphere
       if (this.fishTemplate) {
         const fishRoot = this.fishTemplate.clone("fish_" + entity.id);
         fishRoot.setEnabled(true);
@@ -112,6 +138,27 @@ export class BabylonMeshSystem extends window.ECSY.System {
         }
         // Tag all child meshes for picking back to ECS entity
         fishRoot.getChildMeshes().forEach(m => { m.entity = entity; });
+      } else if (this.fishPrimitiveTemplate) {
+        const mesh = this.fishPrimitiveTemplate.clone('fish_' + entity.id);
+        mesh.setEnabled(true);
+        renderable.model = mesh;
+        if (typeof renderable.scale === 'number') {
+          mesh.scaling.set(renderable.scale, renderable.scale, renderable.scale);
+        }
+        // Apply / reuse material based on genetics color
+        if (genetics) {
+          const key = 'pf_' + genetics.color.join(',');
+          let mat = this.materialCache.get(key);
+          if (!mat) {
+            mat = this.fishPrimitiveTemplate.material.clone('mat_' + key);
+            const [r,g,b] = genetics.color;
+            if (mat.albedoColor) mat.albedoColor = new BABYLON.Color3(r/255, g/255, b/255);
+            if (mat.diffuseColor) mat.diffuseColor = new BABYLON.Color3(r/255, g/255, b/255);
+            this.materialCache.set(key, mat);
+          }
+          mesh.material = mat;
+        }
+        renderable.model.entity = entity;
       } else {
         let fishMesh;
         if (this.fishPool.length) {

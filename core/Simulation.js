@@ -24,6 +24,8 @@ import { FoodSpawnerSystem } from '../ecs/systems/FoodSpawnerSystem.js';
 import { BreedingSystem } from '../ecs/systems/BreedingSystem.js';
 import { SharkSystem } from '../ecs/systems/SharkSystem.js';
 import { SpatialHashSystem } from '../ecs/systems/SpatialHashSystem.js';
+import { WanderSystem } from '../ecs/systems/WanderSystem.js';
+import { SchoolingSystem } from '../ecs/systems/SchoolingSystem.js';
 
 // Import entity factories
 import { FishFactory } from '../ecs/entities/FishFactory.js';
@@ -99,6 +101,8 @@ export class Simulation {
       .registerSystem(HungerSystem)      // Update hunger states
       .registerSystem(BreedingSystem)     // Handle breeding & offspring
       .registerSystem(SharkSystem)         // Predator logic
+      .registerSystem(WanderSystem)        // Simple wander to keep fish moving
+      .registerSystem(SchoolingSystem)     // Cohesion/Separation
       .registerSystem(MovementSystem)      // Move entities
       .registerSystem(RenderSystem);        // Update visual positions
   }
