@@ -28,11 +28,13 @@ import { SharkSystem } from '../ecs/systems/SharkSystem.js';
 import { SpatialHashSystem } from '../ecs/systems/SpatialHashSystem.js';
 import { WanderSystem } from '../ecs/systems/WanderSystem.js';
 import { SchoolingSystem } from '../ecs/systems/SchoolingSystem.js';
+import { CrabSystem } from '../ecs/systems/CrabSystem.js';
 
 // Import entity factories
 import { FishFactory } from '../ecs/entities/FishFactory.js';
 import { FoodFactory } from '../ecs/entities/FoodFactory.js';
 import { SharkFactory } from '../ecs/entities/SharkFactory.js';
+import { CrabFactory } from '../ecs/entities/CrabFactory.js';
 
 import { UIManager } from './UIManager.js';
 
@@ -106,6 +108,7 @@ export class Simulation {
       .registerSystem(FoodConsumptionSystem)   // Handle food consumption
       .registerSystem(BreedingSystem)          // Handle breeding & offspring
       .registerSystem(SharkSystem)             // Predator logic
+      .registerSystem(CrabSystem)              // Crab movement and behavior
       .registerSystem(WanderSystem)            // Simple wander to keep fish moving
       .registerSystem(SchoolingSystem)         // Cohesion/Separation
       .registerSystem(MovementSystem)          // Move entities
@@ -190,6 +193,20 @@ export class Simulation {
           x: (Math.random() - 0.5) * 60,
           y: 10 + Math.random() * 15,
           z: (Math.random() - 0.5) * 60
+        }
+      });
+    }
+    
+    // Create crabs on the ocean floor
+    const cfg = (typeof window !== 'undefined' && window.SimulationConfig) ? window.SimulationConfig : null;
+    const crabCount = cfg?.entities?.crabs?.count || 8;
+    
+    for (let i = 0; i < crabCount; i++) {
+      const crab = CrabFactory.create(this.world, {
+        position: {
+          x: (Math.random() - 0.5) * 80,
+          y: 0, // Will be adjusted to terrain height by CrabSystem
+          z: (Math.random() - 0.5) * 80
         }
       });
     }

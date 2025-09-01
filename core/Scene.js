@@ -143,10 +143,7 @@ class Scene {
             this.scene.onBeforeRenderObservable.add(() => {
                 this.frameCount++;
                 
-                // Update crabs via legacy CrabManager until ECS crab exists
-                if (this.entityHandler?.crabManager) {
-                    this.entityHandler.crabManager.update();
-                }
+                // Legacy crab manager removed - crabs now handled by ECS CrabSystem
 
                 // Update seaweed manager if needed
                 if (this.seaweedManager) {

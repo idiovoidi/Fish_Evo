@@ -1,5 +1,5 @@
 import { Renderable } from '../components/Renderable.js';
-import { FishTag, FoodTag, SharkTag } from '../components/Tags.js';
+import { FishTag, FoodTag, SharkTag, CrabTag } from '../components/Tags.js';
 import { Genetics } from '../components/Genetics.js';
 
 /**
@@ -106,6 +106,9 @@ export class BabylonMeshSystem extends window.ECSY.System {
     
     // Create shark model template with realistic shark geometry
     this.createSharkTemplate();
+    
+    // Create crab model template
+    this.createCrabTemplate();
   }
   
   execute(delta, time) {
@@ -207,6 +210,21 @@ export class BabylonMeshSystem extends window.ECSY.System {
       const rend = entity.getMutableComponent(Renderable);
       const mesh = this.sharkTemplate.clone("shark_" + entity.id);
       mesh.setEnabled(true);
+      // Set initial random orientation
+      mesh.rotation.y = Math.random() * Math.PI * 2;
+      rend.model = mesh;
+      rend.model.entity = entity;
+    });
+    
+    // Create meshes for new crab entities
+    this.queries.newCrab.added.forEach(entity => {
+      const rend = entity.getMutableComponent(Renderable);
+      const mesh = this.crabTemplate.clone("crab_" + entity.id);
+      mesh.setEnabled(true);
+      // Apply scale from renderable
+      if (typeof rend.scale === 'number') {
+        mesh.scaling.set(rend.scale, rend.scale, rend.scale);
+      }
       // Set initial random orientation
       mesh.rotation.y = Math.random() * Math.PI * 2;
       rend.model = mesh;
@@ -391,6 +409,112 @@ export class BabylonMeshSystem extends window.ECSY.System {
     }
   }
   
+  /**
+   * Create a crab model template using procedural geometry
+   */
+  createCrabTemplate() {
+    if (!this.scene) return;
+    
+    try {
+      // Create crab body - flattened box for main shell
+      const body = BABYLON.MeshBuilder.CreateBox('crabBody', {
+        width: 1.2,
+        height: 0.4,
+        depth: 0.8
+      }, this.scene);
+      
+      // Create claws - larger pincers on front
+      const clawLeft = BABYLON.MeshBuilder.CreateBox('clawLeft', {
+        width: 0.4,
+        height: 0.3,
+        depth: 0.3
+      }, this.scene);
+      clawLeft.position.set(0.8, 0, 0.3);
+      
+      const clawRight = clawLeft.clone('clawRight');
+      clawRight.position.set(0.8, 0, -0.3);
+      
+      // Create legs - 6 thin cylindrical legs (3 per side)
+      const legs = [];
+      for (let i = 0; i < 6; i++) {
+        const leg = BABYLON.MeshBuilder.CreateCylinder(
+          `leg${i}`,
+          { diameter: 0.08, height: 0.4 },
+          this.scene
+        );
+        leg.rotation.z = Math.PI / 2; // Rotate to be horizontal
+        leg.position.y = -0.15; // Below body
+        
+        // Position legs along sides
+        const side = i < 3 ? 1 : -1; // Left or right side
+        const legIndex = i % 3;
+        leg.position.x = (legIndex - 1) * 0.3; // Spread along body length
+        leg.position.z = side * 0.5; // Side offset
+        
+        legs.push(leg);
+      }
+      
+      // Create eye stalks - small cylinders on top
+      const eyeStalkL = BABYLON.MeshBuilder.CreateCylinder('eyeStalkL', {
+        diameter: 0.06,
+        height: 0.15
+      }, this.scene);
+      eyeStalkL.position.set(0.4, 0.25, 0.2);
+      
+      const eyeStalkR = eyeStalkL.clone('eyeStalkR');
+      eyeStalkR.position.z = -0.2;
+      
+      // Create eyes - tiny spheres on top of stalks
+      const eyeL = BABYLON.MeshBuilder.CreateSphere('eyeL', {
+        diameter: 0.08
+      }, this.scene);
+      eyeL.position.set(0.4, 0.32, 0.2);
+      
+      const eyeR = eyeL.clone('eyeR');
+      eyeR.position.z = -0.2;
+      
+      // Merge all parts into a single mesh
+      const crabParts = [
+        body, clawLeft, clawRight,
+        ...legs,
+        eyeStalkL, eyeStalkR, eyeL, eyeR
+      ];
+      
+      const crabMesh = BABYLON.Mesh.MergeMeshes(crabParts, true, true, undefined, false, true);
+      crabMesh.name = 'crabTemplate';
+      
+      // Create crab material with reddish-brown coloring
+      const crabMaterial = new BABYLON.StandardMaterial('crabMaterial', this.scene);
+      crabMaterial.diffuseColor = new BABYLON.Color3(0.7, 0.3, 0.2); // Reddish brown
+      crabMaterial.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+      crabMaterial.roughness = 0.9; // Matte finish
+      
+      crabMesh.material = crabMaterial;
+      crabMesh.setEnabled(false); // Hide template
+      
+      this.crabTemplate = crabMesh;
+      
+      console.log('Crab template created successfully');
+      
+    } catch (error) {
+      console.warn('Failed to create crab template, using fallback:', error);
+      
+      // Fallback to simple box shape
+      const fallbackCrab = BABYLON.MeshBuilder.CreateBox('crabFallback', {
+        width: 1.2,
+        height: 0.4,
+        depth: 0.8
+      }, this.scene);
+      
+      const fallbackMaterial = new BABYLON.StandardMaterial('fallbackCrabMat', this.scene);
+      fallbackMaterial.diffuseColor = new BABYLON.Color3(0.7, 0.3, 0.2);
+      fallbackCrab.material = fallbackMaterial;
+      fallbackCrab.setEnabled(false);
+      
+      this.crabTemplate = fallbackCrab;
+    }
+  }
+  
   applyColorToNode(node, rgbArray) {
     if (!rgbArray || !Array.isArray(rgbArray)) return;
     const [r, g, b] = rgbArray;
@@ -425,5 +549,6 @@ BabylonMeshSystem.queries = {
   newFish: { components: [Renderable, FishTag], listen: { added: true } },
   newFood: { components: [Renderable, FoodTag], listen: { added: true } },
   newShark: { components: [Renderable, SharkTag], listen: { added: true } },
+  newCrab: { components: [Renderable, CrabTag], listen: { added: true } },
   removed: { components: [Renderable], listen: { removed: true } }
 }; 
