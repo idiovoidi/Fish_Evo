@@ -140,39 +140,48 @@ export class Simulation {
    * Create initial entities for the simulation
    */
   createInitialEntities() {
-    // Create some fish
-    for (let i = 0; i < 20; i++) {
-      const fish = FishFactory.create(this.world, {
+    // Create multiple small schools of fish at different locations
+    const schoolCount = 4;
+    const fishPerSchool = 5;
+    
+    for (let school = 0; school < schoolCount; school++) {
+      // Define school center position
+      const schoolCenter = {
+        x: (Math.random() - 0.5) * 80,
+        y: 8 + Math.random() * 15, // Between 8-23 depth
+        z: (Math.random() - 0.5) * 80
+      };
+      
+      // Create fish within this school area
+      for (let i = 0; i < fishPerSchool; i++) {
+        const fish = FishFactory.create(this.world, {
+          position: {
+            x: schoolCenter.x + (Math.random() - 0.5) * 10, // ±5 units from center
+            y: schoolCenter.y + (Math.random() - 0.5) * 4,  // ±2 units vertically
+            z: schoolCenter.z + (Math.random() - 0.5) * 10
+          }
+        });
+      }
+    }
+    
+    // Create some initial food scattered around
+    for (let i = 0; i < 15; i++) {
+      const food = FoodFactory.create(this.world, {
         position: {
-          x: (Math.random() - 0.5) * 60,
-          y: 5 + Math.random() * 20,
-          z: (Math.random() - 0.5) * 60
-        },
-        velocity: {
-          x: (Math.random() - 0.5) * 2,
-          y: (Math.random() - 0.5) * 2,
-          z: (Math.random() - 0.5) * 2
+          x: (Math.random() - 0.5) * 100,
+          y: 2 + Math.random() * 25,
+          z: (Math.random() - 0.5) * 100
         }
       });
     }
     
-    // Create some initial food
-    for (let i = 0; i < 10; i++) {
-      const food = FoodFactory.create(this.world);
-    }
-    
-    // Create some sharks
-    for (let i = 0; i < 3; i++) {
+    // Create some sharks in different areas
+    for (let i = 0; i < 2; i++) {
       const shark = SharkFactory.create(this.world, {
         position: {
           x: (Math.random() - 0.5) * 60,
-          y: 5 + Math.random() * 20,
+          y: 10 + Math.random() * 15,
           z: (Math.random() - 0.5) * 60
-        },
-        velocity: {
-          x: (Math.random() - 0.5) * 2,
-          y: (Math.random() - 0.5) * 2,
-          z: (Math.random() - 0.5) * 2
         }
       });
     }

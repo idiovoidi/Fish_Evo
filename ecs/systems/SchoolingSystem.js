@@ -4,62 +4,131 @@ import { Behavior } from '../components/Behavior.js';
 import { FishTag } from '../components/Tags.js';
 import { SpatialHashSystem } from './SpatialHashSystem.js';
 
-// Simple schooling system (boids-lite): cohesion + separation
+// Advanced schooling system implementing boids algorithm: cohesion + separation + alignment
 export class SchoolingSystem extends window.ECSY.System {
   init() {
     this.spatial = this.world.getSystem(SpatialHashSystem);
-    this.neighborRadius = 6;
-    this.separationDistance = 1.2;
+    this.neighborRadius = 8;         // Detection radius
+    this.separationDistance = 2.5;   // Personal space radius  
+    this.cohesionRadius = 6;         // Grouping radius
+    this.alignmentRadius = 4;        // Velocity matching radius
   }
 
   execute(delta) {
     const dt = (delta || 0) / 1000;
-    const r = this.neighborRadius;
-    const rSep = this.separationDistance;
+    const neighborRadius = this.neighborRadius;
+    const sepRadius = this.separationDistance;
+    const cohRadius = this.cohesionRadius;
+    const alignRadius = this.alignmentRadius;
+    
     this.queries.fish.results.forEach(entity => {
       const pos = entity.getComponent(Position);
       const vel = entity.getMutableComponent(Velocity);
       const beh = entity.getComponent(Behavior);
+      
       if (!pos || !vel) return;
 
-      const neighbors = this.spatial.getEntitiesNear(pos, r, FishTag);
-      if (!neighbors || neighbors.length === 0) return;
+      const neighbors = this.spatial.getEntitiesNear(pos, neighborRadius, FishTag);
+      if (!neighbors || neighbors.length <= 1) return; // Need at least one other fish
 
-      let count = 0;
-      const center = { x:0, y:0, z:0 };
-      const sep = { x:0, y:0, z:0 };
-      neighbors.forEach(n => {
-        if (n === entity) return;
-        const p = n.getComponent(Position);
-        if (!p) return;
-        center.x += p.x; center.y += p.y; center.z += p.z; count++;
-        const dx = pos.x - p.x, dy = pos.y - p.y, dz = pos.z - p.z;
-        const d2 = dx*dx+dy*dy+dz*dz;
-        if (d2 > 0 && d2 < rSep*rSep) {
-          const inv = 1/Math.sqrt(d2);
-          sep.x += dx*inv; sep.y += dy*inv; sep.z += dz*inv;
+      // Schooling preference affects how much fish follow boids rules
+      const schoolPref = beh?.schoolingPreference ?? 0.8;
+      const personalSpace = beh?.personalSpace ?? 1.0;
+      
+      let separationCount = 0, cohesionCount = 0, alignmentCount = 0;
+      const separation = { x: 0, y: 0, z: 0 };
+      const cohesion = { x: 0, y: 0, z: 0 };
+      const alignment = { x: 0, y: 0, z: 0 };
+      
+      neighbors.forEach(neighbor => {
+        if (neighbor === entity) return;
+        
+        const neighborPos = neighbor.getComponent(Position);
+        const neighborVel = neighbor.getComponent(Velocity);
+        if (!neighborPos) return;
+        
+        const dx = pos.x - neighborPos.x;
+        const dy = pos.y - neighborPos.y;
+        const dz = pos.z - neighborPos.z;
+        const distSq = dx*dx + dy*dy + dz*dz;
+        const dist = Math.sqrt(distSq);
+        
+        // SEPARATION: Avoid crowding neighbors
+        if (dist > 0 && dist < sepRadius * personalSpace) {
+          const weight = (sepRadius * personalSpace - dist) / (sepRadius * personalSpace);
+          separation.x += (dx / dist) * weight;
+          separation.y += (dy / dist) * weight;
+          separation.z += (dz / dist) * weight;
+          separationCount++;
+        }
+        
+        // COHESION: Move toward average position of neighbors
+        if (dist < cohRadius) {
+          cohesion.x += neighborPos.x;
+          cohesion.y += neighborPos.y;
+          cohesion.z += neighborPos.z;
+          cohesionCount++;
+        }
+        
+        // ALIGNMENT: Match velocity of nearby neighbors
+        if (dist < alignRadius && neighborVel) {
+          alignment.x += neighborVel.x;
+          alignment.y += neighborVel.y;
+          alignment.z += neighborVel.z;
+          alignmentCount++;
         }
       });
-      if (count === 0) return;
-      center.x/=count; center.y/=count; center.z/=count;
-
-      // Cohesion: steer toward center
-      const steerC = { x: center.x - pos.x, y: center.y - pos.y, z: center.z - pos.z };
-      // Separation already points away from close neighbors
-
-      const pref = beh?.schoolingPreference ?? 1.0;
-      const weightCohesion = 0.8 * pref;
-      const weightSeparation = 1.2 * (2 - pref);
-
-      vel.x += (steerC.x * weightCohesion + sep.x * weightSeparation) * dt;
-      vel.y += (steerC.y * weightCohesion + sep.y * weightSeparation) * dt * 0.2;
-      vel.z += (steerC.z * weightCohesion + sep.z * weightSeparation) * dt;
-
-      // Clamp speed to maxSpeed
+      
+      // Calculate steering forces
+      const steer = { x: 0, y: 0, z: 0 };
+      
+      // Apply separation (highest priority)
+      if (separationCount > 0) {
+        const sepWeight = 2.5 * schoolPref;
+        steer.x += separation.x * sepWeight;
+        steer.y += separation.y * sepWeight * 0.5; // Reduce vertical separation
+        steer.z += separation.z * sepWeight;
+      }
+      
+      // Apply cohesion (medium priority)
+      if (cohesionCount > 0) {
+        cohesion.x = (cohesion.x / cohesionCount) - pos.x; // Direction to center
+        cohesion.y = (cohesion.y / cohesionCount) - pos.y;
+        cohesion.z = (cohesion.z / cohesionCount) - pos.z;
+        
+        const cohWeight = 1.0 * schoolPref;
+        steer.x += cohesion.x * cohWeight;
+        steer.y += cohesion.y * cohWeight * 0.3; // Reduce vertical cohesion
+        steer.z += cohesion.z * cohWeight;
+      }
+      
+      // Apply alignment (lower priority)
+      if (alignmentCount > 0) {
+        alignment.x = (alignment.x / alignmentCount) - vel.x; // Desired velocity change
+        alignment.y = (alignment.y / alignmentCount) - vel.y;
+        alignment.z = (alignment.z / alignmentCount) - vel.z;
+        
+        const alignWeight = 0.8 * schoolPref;
+        steer.x += alignment.x * alignWeight;
+        steer.y += alignment.y * alignWeight;
+        steer.z += alignment.z * alignWeight;
+      }
+      
+      // Apply steering with time-based integration
+      vel.x += steer.x * dt;
+      vel.y += steer.y * dt;
+      vel.z += steer.z * dt;
+      
+      // Maintain reasonable speed limits
       const speedSq = vel.x*vel.x + vel.y*vel.y + vel.z*vel.z;
       const maxSq = vel.maxSpeed * vel.maxSpeed;
+      const minSpeed = vel.maxSpeed * 0.3; // Minimum 30% of max speed
+      
       if (speedSq > maxSq) {
         const s = vel.maxSpeed / Math.sqrt(speedSq);
+        vel.x *= s; vel.y *= s; vel.z *= s;
+      } else if (speedSq < minSpeed * minSpeed) {
+        const s = minSpeed / Math.sqrt(speedSq);
         vel.x *= s; vel.y *= s; vel.z *= s;
       }
     });

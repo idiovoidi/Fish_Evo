@@ -2,7 +2,7 @@ import { Position } from '../components/Position.js';
 import { Velocity } from '../components/Velocity.js';
 
 /**
- * Movement System - Updates entity positions based on velocity
+ * Movement System - Updates entity positions based on velocity with improved boundary handling
  */
 export class MovementSystem extends window.ECSY.System {
   init() {
@@ -17,29 +17,69 @@ export class MovementSystem extends window.ECSY.System {
     
     // Query entities with both Position and Velocity components
     this.queries.moving.results.forEach(entity => {
-      const position = entity.getComponent(Position);
-      const velocity = entity.getComponent(Velocity);
+      const position = entity.getMutableComponent(Position);  // Need mutable for updates
+      const velocity = entity.getMutableComponent(Velocity);  // Need mutable for boundary reactions
       
-      // Update position based on velocity
+      // Apply velocity to position
       position.x += velocity.x * deltaTime;
       position.y += velocity.y * deltaTime;
       position.z += velocity.z * deltaTime;
       
-      // Automatically apply simple boundary constraints if needed
-      this.applyBoundaryConstraints(position);
+      // Apply boundary constraints with bounce-back effect
+      this.applyBoundaryConstraints(position, velocity);
+      
+      // Ensure velocity stays within reasonable bounds
+      this.clampVelocity(velocity);
     });
   }
   
-  // Simple boundary constraint to keep entities within a bounding box
-  applyBoundaryConstraints(position) {
+  // Improved boundary constraint with velocity reflection
+  applyBoundaryConstraints(position, velocity) {
     const b = this.bounds;
     if (!b) return;
-    if (position.x < b.minX) position.x = b.minX;
-    if (position.x > b.maxX) position.x = b.maxX;
-    if (position.y < b.minY) position.y = b.minY;
-    if (position.y > b.maxY) position.y = b.maxY;
-    if (position.z < b.minZ) position.z = b.minZ;
-    if (position.z > b.maxZ) position.z = b.maxZ;
+    
+    const dampening = 0.7; // Reduce speed when bouncing
+    const margin = 1; // Small margin to prevent sticking
+    
+    // X boundaries
+    if (position.x <= b.minX + margin) {
+      position.x = b.minX + margin;
+      if (velocity.x < 0) velocity.x = Math.abs(velocity.x) * dampening;
+    } else if (position.x >= b.maxX - margin) {
+      position.x = b.maxX - margin;
+      if (velocity.x > 0) velocity.x = -Math.abs(velocity.x) * dampening;
+    }
+    
+    // Y boundaries (vertical)
+    if (position.y <= b.minY + margin) {
+      position.y = b.minY + margin;
+      if (velocity.y < 0) velocity.y = Math.abs(velocity.y) * dampening;
+    } else if (position.y >= b.maxY - margin) {
+      position.y = b.maxY - margin;
+      if (velocity.y > 0) velocity.y = -Math.abs(velocity.y) * dampening;
+    }
+    
+    // Z boundaries  
+    if (position.z <= b.minZ + margin) {
+      position.z = b.minZ + margin;
+      if (velocity.z < 0) velocity.z = Math.abs(velocity.z) * dampening;
+    } else if (position.z >= b.maxZ - margin) {
+      position.z = b.maxZ - margin;
+      if (velocity.z > 0) velocity.z = -Math.abs(velocity.z) * dampening;
+    }
+  }
+  
+  // Consistent velocity clamping
+  clampVelocity(velocity) {
+    const speedSq = velocity.x*velocity.x + velocity.y*velocity.y + velocity.z*velocity.z;
+    const maxSq = velocity.maxSpeed * velocity.maxSpeed;
+    
+    if (speedSq > maxSq) {
+      const scale = velocity.maxSpeed / Math.sqrt(speedSq);
+      velocity.x *= scale;
+      velocity.y *= scale;
+      velocity.z *= scale;
+    }
   }
 }
 

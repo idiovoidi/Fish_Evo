@@ -19,30 +19,61 @@ export class FishFactory {
    * @returns {Entity} The created fish entity
    */
   static create(world, options = {}) {
+    // Generate genetics first to determine derived properties
+    const genetics = {
+      size: 0.8 + Math.random() * 0.8, // 0.8–1.6
+      speed: 4 + Math.random() * 4,    // 4–8
+      metabolism: 0.8 + Math.random() * 0.4, // 0.8–1.2
+      color: [
+        Math.floor(80 + Math.random() * 120),
+        Math.floor(120 + Math.random() * 120),
+        Math.floor(150 + Math.random() * 105)
+      ],
+      ...options.genetics
+    };
+    
+    // Create initial velocity that's directional and realistic
+    const angle = Math.random() * Math.PI * 2; // Random horizontal direction
+    const verticalAngle = (Math.random() - 0.5) * 0.3; // Slight vertical angle
+    const initialSpeed = 0.4 + Math.random() * 0.4; // 40-80% of max speed
+    
+    const initialVelocity = {
+      x: Math.cos(angle) * Math.cos(verticalAngle) * genetics.speed * initialSpeed,
+      y: Math.sin(verticalAngle) * genetics.speed * initialSpeed * 0.5, // Reduced vertical component
+      z: Math.sin(angle) * Math.cos(verticalAngle) * genetics.speed * initialSpeed,
+      maxSpeed: genetics.speed,
+      ...options.velocity
+    };
+    
     // Set defaults and merge with provided options
     const config = {
       position: { x: 0, y: 10, z: 0, ...options.position },
-      velocity: { x: 0, y: 0, z: 0, maxSpeed: 8, ...options.velocity },
-      health: { current: 100, max: 100, regenRate: 0.1, ...options.health },
+      velocity: initialVelocity,
+      health: { current: 100, max: 100, regenRate: 0.1, isDead: false, ...options.health },
       age: { value: 0, maturityAge: 60, maxAge: 300, ...options.age },
-      hunger: { value: 0.2, rate: 0.02, ...options.hunger },
+      hunger: { 
+        value: 0.1 + Math.random() * 0.2, // Start with slight hunger variation
+        rate: 0.015 + Math.random() * 0.01, // 0.015-0.025 per second
+        ...options.hunger 
+      },
       behavior: { 
-        schoolingPreference: 0.8 + Math.random() * 0.4,
-        personalSpace: 1 + Math.random() * 0.5,
+        schoolingPreference: 0.6 + Math.random() * 0.4, // 0.6-1.0 range
+        personalSpace: 1 + Math.random() * 0.8, // 1.0-1.8 range
+        isHungry: false,
+        isFleeing: false,
+        isSchooling: true, // Start in schooling mode
+        isResting: false,
+        isMating: false,
+        lastBreedTime: 0,
+        breedCooldown: 30000,
         ...options.behavior 
       },
-      renderable: { model: null, scale: 1, ...options.renderable },
-      genetics: {
-        size: 0.8 + Math.random() * 0.8, // 0.8–1.6
-        speed: 4 + Math.random() * 4,    // 4–8
-        metabolism: 0.8 + Math.random() * 0.4, // 0.8–1.2
-        color: [
-          Math.floor(80 + Math.random() * 120),
-          Math.floor(120 + Math.random() * 120),
-          Math.floor(150 + Math.random() * 105)
-        ],
-        ...options.genetics
+      renderable: { 
+        model: null, 
+        scale: genetics.size,
+        ...options.renderable 
       },
+      genetics: genetics
     };
     
     // Create entity with components
@@ -57,14 +88,6 @@ export class FishFactory {
       .addComponent(Renderable, config.renderable)
       .addComponent(FishTag)
       .addComponent(Genetics, config.genetics);
-    
-    // After adding components, apply genetics-derived values
-    const g = fish.getComponent(Genetics);
-    const vel = fish.getMutableComponent(Velocity);
-    vel.maxSpeed = g.speed;
-    const rend = fish.getMutableComponent(Renderable);
-    rend.scale = g.size;
-    // Color will be applied when BabylonMeshSystem clones the mesh
 
     return fish;
   }
