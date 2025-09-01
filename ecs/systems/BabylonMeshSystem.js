@@ -127,6 +127,8 @@ export class BabylonMeshSystem extends window.ECSY.System {
         if (typeof renderable.scale === 'number') {
           fishRoot.scaling.set(renderable.scale, renderable.scale, renderable.scale);
         }
+        // Set initial random orientation
+        fishRoot.rotation.y = Math.random() * Math.PI * 2;
         // Apply genetics color to child meshes
         if (genetics) {
           this.applyColorToNode(fishRoot, genetics.color);
@@ -140,6 +142,8 @@ export class BabylonMeshSystem extends window.ECSY.System {
         if (typeof renderable.scale === 'number') {
           mesh.scaling.set(renderable.scale, renderable.scale, renderable.scale);
         }
+        // Set initial random orientation
+        mesh.rotation.y = Math.random() * Math.PI * 2;
         // Apply / reuse material based on genetics color
         if (genetics) {
           const key = 'pf_' + genetics.color.join(',');
@@ -163,6 +167,8 @@ export class BabylonMeshSystem extends window.ECSY.System {
         }
         fishMesh.setEnabled(true);
         renderable.model = fishMesh;
+        // Set initial random orientation
+        fishMesh.rotation.y = Math.random() * Math.PI * 2;
         // Apply / reuse material based on genetics color
         if (genetics) {
           const key = genetics.color.join(',');
@@ -201,6 +207,8 @@ export class BabylonMeshSystem extends window.ECSY.System {
       const rend = entity.getMutableComponent(Renderable);
       const mesh = this.sharkTemplate.clone("shark_" + entity.id);
       mesh.setEnabled(true);
+      // Set initial random orientation
+      mesh.rotation.y = Math.random() * Math.PI * 2;
       rend.model = mesh;
       rend.model.entity = entity;
     });

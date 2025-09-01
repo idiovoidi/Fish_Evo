@@ -21,7 +21,9 @@ import { HungerSystem } from '../ecs/systems/HungerSystem.js';
 import { RenderSystem } from '../ecs/systems/RenderSystem.js';
 import { BabylonMeshSystem } from '../ecs/systems/BabylonMeshSystem.js';
 import { FoodSpawnerSystem } from '../ecs/systems/FoodSpawnerSystem.js';
+import { FoodConsumptionSystem } from '../ecs/systems/FoodConsumptionSystem.js';
 import { BreedingSystem } from '../ecs/systems/BreedingSystem.js';
+import { AgingSystem } from '../ecs/systems/AgingSystem.js';
 import { SharkSystem } from '../ecs/systems/SharkSystem.js';
 import { SpatialHashSystem } from '../ecs/systems/SpatialHashSystem.js';
 import { WanderSystem } from '../ecs/systems/WanderSystem.js';
@@ -56,6 +58,7 @@ export class Simulation {
     // Store systems that need a scene reference
     this.babylonMeshSystem = this.world.getSystem(BabylonMeshSystem);
     this.foodSpawnerSystem = this.world.getSystem(FoodSpawnerSystem);
+    this.foodConsumptionSystem = this.world.getSystem(FoodConsumptionSystem);
     
     // Wrap methods with error handling
     this.update = withErrorHandler(this.update.bind(this), 'Simulation.update');
@@ -95,16 +98,18 @@ export class Simulation {
   registerSystems() {
     // Register all systems in the order they should execute
     this.world
-      .registerSystem(SpatialHashSystem)  // Build spatial grid
-      .registerSystem(BabylonMeshSystem)
-      .registerSystem(FoodSpawnerSystem) // Then spawn food
-      .registerSystem(HungerSystem)      // Update hunger states
-      .registerSystem(BreedingSystem)     // Handle breeding & offspring
-      .registerSystem(SharkSystem)         // Predator logic
-      .registerSystem(WanderSystem)        // Simple wander to keep fish moving
-      .registerSystem(SchoolingSystem)     // Cohesion/Separation
-      .registerSystem(MovementSystem)      // Move entities
-      .registerSystem(RenderSystem);        // Update visual positions
+      .registerSystem(SpatialHashSystem)      // Build spatial grid
+      .registerSystem(BabylonMeshSystem)       // Create/manage meshes
+      .registerSystem(FoodSpawnerSystem)       // Spawn food
+      .registerSystem(AgingSystem)             // Update age and maturity
+      .registerSystem(HungerSystem)            // Update hunger states
+      .registerSystem(FoodConsumptionSystem)   // Handle food consumption
+      .registerSystem(BreedingSystem)          // Handle breeding & offspring
+      .registerSystem(SharkSystem)             // Predator logic
+      .registerSystem(WanderSystem)            // Simple wander to keep fish moving
+      .registerSystem(SchoolingSystem)         // Cohesion/Separation
+      .registerSystem(MovementSystem)          // Move entities
+      .registerSystem(RenderSystem);           // Update visual positions and animations
   }
   
   /**

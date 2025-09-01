@@ -52,8 +52,8 @@ export class FishFactory {
       health: { current: 100, max: 100, regenRate: 0.1, isDead: false, ...options.health },
       age: { value: 0, maturityAge: 60, maxAge: 300, ...options.age },
       hunger: { 
-        value: 0.1 + Math.random() * 0.2, // Start with slight hunger variation
-        rate: 0.015 + Math.random() * 0.01, // 0.015-0.025 per second
+        value: 0.4 + Math.random() * 0.3, // Start with moderate hunger (0.4-0.7)
+        rate: 0.012 + Math.random() * 0.008, // 0.012-0.020 per second
         ...options.hunger 
       },
       behavior: { 
