@@ -1,69 +1,242 @@
 import { Position } from '../components/Position.js';
 import { Velocity } from '../components/Velocity.js';
 import { PredatorState } from '../components/PredatorState.js';
+import { Behavior } from '../components/Behavior.js';
+import { Genetics } from '../components/Genetics.js';
 import { SharkTag, FishTag } from '../components/Tags.js';
 import { Health } from '../components/Health.js';
 import { SpatialHashSystem } from '../systems/SpatialHashSystem.js';
 
-const DETECT_RADIUS = 25;
-const SPRINT_RADIUS = 10;
-const BITE_RANGE = 1.5;
-const BASE_SPEED = 10;
-const SPRINT_SPEED = 14;
-const ENERGY_GAIN = 40; // not used yet
-
-const DETECT_RADIUS_SQ = DETECT_RADIUS*DETECT_RADIUS;
-const SPRINT_RADIUS_SQ = SPRINT_RADIUS*SPRINT_RADIUS;
-const BITE_RANGE_SQ = BITE_RANGE*BITE_RANGE;
-
+/**
+ * Enhanced SharkSystem with realistic predator behavior
+ */
 export class SharkSystem extends window.ECSY.System {
-  init(){
+  init() {
     this.spatial = this.world.getSystem(SpatialHashSystem);
   }
 
-  execute(delta, time){
-    this.queries.sharks.results.forEach(shark=>{
-      const posS = shark.getComponent(Position);
-      const vel = shark.getMutableComponent(Velocity);
-      const pred = shark.getMutableComponent(PredatorState);
-
-      // Nearby fish lookup via spatial grid
-      const nearby = this.spatial.getEntitiesNear(posS, DETECT_RADIUS, FishTag);
-      if(!nearby.length){
-        // simple damping wander
-        vel.x*=0.95; vel.y*=0.95; vel.z*=0.95;
+  execute(delta, time) {
+    const deltaTime = delta / 1000;
+    
+    this.queries.sharks.results.forEach(shark => {
+      const position = shark.getComponent(Position);
+      const velocity = shark.getMutableComponent(Velocity);
+      const predState = shark.getMutableComponent(PredatorState);
+      const behavior = shark.getComponent(Behavior);
+      const genetics = shark.getComponent(Genetics);
+      
+      // Get shark characteristics
+      const huntRadius = behavior?.huntingRadius || 20;
+      const aggression = behavior?.aggressionLevel || 0.8;
+      const baseSpeed = genetics?.speed || velocity.maxSpeed;
+      const chaseSpeed = predState.chaseSpeed || baseSpeed * 1.3;
+      
+      // Look for prey in hunting radius
+      const nearbyFish = this.spatial.getEntitiesNear(position, huntRadius, FishTag);
+      
+      if (nearbyFish.length === 0) {
+        // No prey detected - patrol behavior
+        this.patrolBehavior(shark, velocity, deltaTime, baseSpeed);
+        predState.isChasing = false;
+        predState.huntingTarget = null;
         return;
       }
-      // find nearest fish among nearby list
-      let nearest=null; let nearestDistSq=Infinity;
-      for(let i=0;i<nearby.length;i++){
-        const fish=nearby[i];
-        const p=fish.getComponent(Position);
-        const dx=posS.x-p.x, dy=posS.y-p.y, dz=posS.z-p.z;
-        const d2=dx*dx+dy*dy+dz*dz;
-        if(d2<nearestDistSq){nearest=fish;nearestDistSq=d2;}
+      
+      // Find best target (closest healthy fish)
+      let targetFish = this.selectBestTarget(shark, nearbyFish, position);
+      
+      if (!targetFish) {
+        this.patrolBehavior(shark, velocity, deltaTime, baseSpeed);
+        predState.isChasing = false;
+        predState.huntingTarget = null;
+        return;
       }
-      if(!nearest) return; // should not happen
-
-      const dist=Math.sqrt(nearestDistSq);
-      const dirX=(nearest.getComponent(Position).x-posS.x)/dist;
-      const dirY=(nearest.getComponent(Position).y-posS.y)/dist;
-      const dirZ=(nearest.getComponent(Position).z-posS.z)/dist;
-      const speed = nearestDistSq<SPRINT_RADIUS_SQ?SPRINT_SPEED:BASE_SPEED;
-      vel.x = dirX*speed; vel.y = dirY*speed; vel.z = dirZ*speed;
-
-      // bite check
-      if(nearestDistSq < BITE_RANGE_SQ && time - pred.lastBiteTime > pred.biteCooldown){
-        const h = nearest.getMutableComponent(Health);
-        h.current = 0; h.isDead = true;
-        nearest.remove();
-        pred.lastBiteTime = time;
+      
+      const targetPos = targetFish.getComponent(Position);
+      const distance = this.getDistance(position, targetPos);
+      
+      // Update hunting target
+      predState.huntingTarget = targetFish;
+      
+      // Different behavior based on distance to prey
+      if (distance < 2.0) {
+        // Close enough to attack
+        this.attackBehavior(shark, targetFish, predState, time);
+      } else if (distance < 8.0) {
+        // Close pursuit - high speed chase
+        predState.isChasing = true;
+        this.chaseBehavior(shark, targetPos, velocity, chaseSpeed, deltaTime);
+      } else {
+        // Distant approach - moderate speed stalking
+        predState.isChasing = false;
+        this.stalkBehavior(shark, targetPos, velocity, baseSpeed * 0.8, deltaTime);
+      }
+      
+      // Apply velocity limits
+      this.clampVelocity(velocity);
+    });
+  }
+  
+  /**
+   * Patrol behavior when no prey is detected
+   */
+  patrolBehavior(shark, velocity, deltaTime, baseSpeed) {
+    const position = shark.getComponent(Position);
+    
+    // Gradual turning with momentum
+    const turnRate = 0.8 * deltaTime;
+    velocity.x += (Math.random() - 0.5) * turnRate * baseSpeed;
+    velocity.y += (Math.random() - 0.5) * turnRate * baseSpeed * 0.3;
+    velocity.z += (Math.random() - 0.5) * turnRate * baseSpeed;
+    
+    // Maintain moderate cruising speed
+    const currentSpeed = Math.sqrt(velocity.x*velocity.x + velocity.y*velocity.y + velocity.z*velocity.z);
+    const targetSpeed = baseSpeed * 0.6; // Cruise at 60% max speed
+    
+    if (currentSpeed > 0) {
+      const speedAdjust = targetSpeed / currentSpeed;
+      velocity.x *= speedAdjust;
+      velocity.y *= speedAdjust;
+      velocity.z *= speedAdjust;
+    }
+    
+    // Depth preference - stay in mid-water
+    if (position.y > 20) velocity.y -= 1.5 * deltaTime;
+    if (position.y < 8) velocity.y += 1.5 * deltaTime;
+  }
+  
+  /**
+   * Stalking behavior - approach prey cautiously
+   */
+  stalkBehavior(shark, targetPos, velocity, speed, deltaTime) {
+    const position = shark.getComponent(Position);
+    
+    const dx = targetPos.x - position.x;
+    const dy = targetPos.y - position.y;
+    const dz = targetPos.z - position.z;
+    const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+    
+    if (distance > 0) {
+      // Smooth approach with slight randomness
+      const approach = 0.7; // Not directly towards target
+      const random = 0.3;
+      
+      velocity.x = velocity.x * 0.9 + (dx/distance * speed * approach + (Math.random()-0.5) * speed * random) * 0.1;
+      velocity.y = velocity.y * 0.9 + (dy/distance * speed * approach * 0.5 + (Math.random()-0.5) * speed * random * 0.3) * 0.1;
+      velocity.z = velocity.z * 0.9 + (dz/distance * speed * approach + (Math.random()-0.5) * speed * random) * 0.1;
+    }
+  }
+  
+  /**
+   * Chase behavior - direct high-speed pursuit
+   */
+  chaseBehavior(shark, targetPos, velocity, chaseSpeed, deltaTime) {
+    const position = shark.getComponent(Position);
+    
+    const dx = targetPos.x - position.x;
+    const dy = targetPos.y - position.y;
+    const dz = targetPos.z - position.z;
+    const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+    
+    if (distance > 0) {
+      // Direct pursuit
+      const steerStrength = 4.0 * deltaTime;
+      velocity.x += (dx/distance * chaseSpeed - velocity.x) * steerStrength;
+      velocity.y += (dy/distance * chaseSpeed * 0.6 - velocity.y) * steerStrength; // Reduced vertical chase
+      velocity.z += (dz/distance * chaseSpeed - velocity.z) * steerStrength;
+    }
+  }
+  
+  /**
+   * Attack behavior - bite nearby prey
+   */
+  attackBehavior(shark, targetFish, predState, time) {
+    if (time - predState.lastBiteTime >= predState.biteCooldown) {
+      const targetHealth = targetFish.getMutableComponent(Health);
+      
+      if (targetHealth && !targetHealth.isDead) {
+        // Deal damage based on shark size/genetics
+        const genetics = shark.getComponent(Genetics);
+        const damage = 80 + (genetics?.size || 1) * 20; // 80-160 damage
+        
+        targetHealth.current = Math.max(0, targetHealth.current - damage);
+        
+        if (targetHealth.current <= 0) {
+          targetHealth.isDead = true;
+          
+          // Stop the fish from moving
+          if (targetFish.hasComponent(Velocity)) {
+            const fishVel = targetFish.getMutableComponent(Velocity);
+            fishVel.x = 0;
+            fishVel.y = -1; // Sink
+            fishVel.z = 0;
+          }
+        }
+        
+        predState.lastBiteTime = time;
+        predState.lastAttackTime = time;
+        
+        console.log(`Shark attacked ${targetHealth.isDead ? 'and killed' : 'but damaged'} fish!`);
+      }
+    }
+  }
+  
+  /**
+   * Select the best target from available prey
+   */
+  selectBestTarget(shark, fishList, sharkPos) {
+    let bestTarget = null;
+    let bestScore = -1;
+    
+    fishList.forEach(fish => {
+      const fishHealth = fish.getComponent(Health);
+      if (fishHealth && fishHealth.isDead) return; // Skip dead fish
+      
+      const fishPos = fish.getComponent(Position);
+      if (!fishPos) return;
+      
+      const distance = this.getDistance(sharkPos, fishPos);
+      
+      // Prefer closer, healthier fish
+      const healthFactor = fishHealth ? (fishHealth.current / fishHealth.max) : 1.0;
+      const distanceFactor = 1.0 / (1.0 + distance * 0.1);
+      const score = healthFactor * distanceFactor;
+      
+      if (score > bestScore) {
+        bestScore = score;
+        bestTarget = fish;
       }
     });
+    
+    return bestTarget;
+  }
+  
+  /**
+   * Calculate distance between two positions
+   */
+  getDistance(pos1, pos2) {
+    const dx = pos1.x - pos2.x;
+    const dy = pos1.y - pos2.y;
+    const dz = pos1.z - pos2.z;
+    return Math.sqrt(dx*dx + dy*dy + dz*dz);
+  }
+  
+  /**
+   * Clamp velocity to maximum speed
+   */
+  clampVelocity(velocity) {
+    const speedSq = velocity.x*velocity.x + velocity.y*velocity.y + velocity.z*velocity.z;
+    const maxSq = velocity.maxSpeed * velocity.maxSpeed;
+    
+    if (speedSq > maxSq) {
+      const scale = velocity.maxSpeed / Math.sqrt(speedSq);
+      velocity.x *= scale;
+      velocity.y *= scale;
+      velocity.z *= scale;
+    }
   }
 }
 
 SharkSystem.queries = {
-  sharks:{components:[SharkTag,Position,Velocity,PredatorState]},
-  // fish query left for other uses but not needed for logic now
+  sharks: { components: [SharkTag, Position, Velocity, PredatorState] }
 }; 

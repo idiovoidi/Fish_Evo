@@ -104,13 +104,8 @@ export class BabylonMeshSystem extends window.ECSY.System {
     foodSphere.setEnabled(false); // Hide the template
     this.foodModels.push(foodSphere);
     
-    // Create shark model template
-    const sharkMesh = BABYLON.MeshBuilder.CreateBox("sharkTemplate", {size:3, height:1}, this.scene);
-    const sharkMat = new BABYLON.StandardMaterial("sharkMat", this.scene);
-    sharkMat.diffuseColor = new BABYLON.Color3(0.2,0.2,0.2);
-    sharkMesh.material = sharkMat;
-    sharkMesh.setEnabled(false);
-    this.sharkTemplate = sharkMesh;
+    // Create shark model template with realistic shark geometry
+    this.createSharkTemplate();
   }
   
   execute(delta, time) {
@@ -219,6 +214,175 @@ export class BabylonMeshSystem extends window.ECSY.System {
     });
   }
 
+  /**
+   * Create a realistic shark model template using procedural geometry
+   */
+  createSharkTemplate() {
+    if (!this.scene) return;
+    
+    try {
+      // Main body - elongated ellipsoid for shark body
+      const bodyLength = 3.5;
+      const bodyHeight = 0.8;
+      const bodyWidth = 1.0;
+      
+      const body = BABYLON.MeshBuilder.CreateSphere("sharkBody", {
+        diameterX: bodyLength,
+        diameterY: bodyHeight, 
+        diameterZ: bodyWidth,
+        segments: 12
+      }, this.scene);
+      
+      // Head/Snout - pointed cone for shark nose
+      const snout = BABYLON.MeshBuilder.CreateCylinder("sharkSnout", {
+        diameterTop: 0.3,
+        diameterBottom: 0.7,
+        height: 0.8
+      }, this.scene);
+      snout.rotation.z = Math.PI / 2;
+      snout.position.x = bodyLength * 0.4;
+      
+      // Dorsal fin - triangular fin on top
+      const dorsalFin = BABYLON.MeshBuilder.CreateCylinder("dorsalFin", {
+        diameterTop: 0.1,
+        diameterBottom: 0.6,
+        height: 1.2
+      }, this.scene);
+      dorsalFin.position.y = bodyHeight * 0.6;
+      dorsalFin.position.x = -0.3;
+      
+      // Tail fin - large crescent shape
+      const tailMain = BABYLON.MeshBuilder.CreateCylinder("tailMain", {
+        diameterTop: 0.1,
+        diameterBottom: 1.2,
+        height: 1.5
+      }, this.scene);
+      tailMain.rotation.z = Math.PI / 2;
+      tailMain.position.x = -bodyLength * 0.45;
+      
+      // Upper tail lobe
+      const upperTail = BABYLON.MeshBuilder.CreateCylinder("upperTail", {
+        diameterTop: 0.05,
+        diameterBottom: 0.4,
+        height: 0.8
+      }, this.scene);
+      upperTail.rotation.z = -Math.PI / 4;
+      upperTail.position.set(-bodyLength * 0.6, 0.4, 0);
+      
+      // Pectoral fins - side fins
+      const pectoralFinL = BABYLON.MeshBuilder.CreateCylinder("pectoralFinL", {
+        diameterTop: 0.1,
+        diameterBottom: 0.5,
+        height: 1.0
+      }, this.scene);
+      pectoralFinL.rotation.x = Math.PI / 2;
+      pectoralFinL.rotation.y = -Math.PI / 6;
+      pectoralFinL.position.set(0.3, -0.2, 0.8);
+      
+      const pectoralFinR = pectoralFinL.clone("pectoralFinR");
+      pectoralFinR.rotation.y = Math.PI / 6;
+      pectoralFinR.position.z = -0.8;
+      
+      // Pelvic fins - smaller bottom fins
+      const pelvicFinL = BABYLON.MeshBuilder.CreateCylinder("pelvicFinL", {
+        diameterTop: 0.05,
+        diameterBottom: 0.3,
+        height: 0.6
+      }, this.scene);
+      pelvicFinL.rotation.x = Math.PI / 2;
+      pelvicFinL.rotation.z = Math.PI / 8;
+      pelvicFinL.position.set(-0.5, -0.3, 0.4);
+      
+      const pelvicFinR = pelvicFinL.clone("pelvicFinR");
+      pelvicFinR.rotation.z = -Math.PI / 8;
+      pelvicFinR.position.z = -0.4;
+      
+      // Anal fin - small bottom fin
+      const analFin = BABYLON.MeshBuilder.CreateCylinder("analFin", {
+        diameterTop: 0.05,
+        diameterBottom: 0.25,
+        height: 0.5
+      }, this.scene);
+      analFin.position.set(-1.0, -0.3, 0);
+      
+      // Eyes - small spheres on sides
+      const eyeL = BABYLON.MeshBuilder.CreateSphere("eyeL", {
+        diameter: 0.15
+      }, this.scene);
+      eyeL.position.set(1.2, 0.15, 0.35);
+      
+      const eyeR = eyeL.clone("eyeR");
+      eyeR.position.z = -0.35;
+      
+      // Merge all parts into a single mesh for performance
+      const sharkParts = [
+        body, snout, dorsalFin, tailMain, upperTail,
+        pectoralFinL, pectoralFinR, pelvicFinL, pelvicFinR,
+        analFin, eyeL, eyeR
+      ];
+      
+      const sharkMesh = BABYLON.Mesh.MergeMeshes(sharkParts, true, true, undefined, false, true);
+      sharkMesh.name = "sharkTemplate";
+      
+      // Create shark material with realistic coloring
+      const sharkMaterial = new BABYLON.StandardMaterial("sharkMaterial", this.scene);
+      sharkMaterial.diffuseColor = new BABYLON.Color3(0.25, 0.25, 0.3); // Dark blue-gray
+      sharkMaterial.specularColor = new BABYLON.Color3(0.1, 0.1, 0.1);
+      sharkMaterial.roughness = 0.8;
+      
+      // Add subtle texture variation
+      const sharkTexture = new BABYLON.DynamicTexture("sharkTexture", {width: 256, height: 256}, this.scene);
+      const ctx = sharkTexture.getContext();
+      
+      // Create a gradient from dark back to lighter belly
+      const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+      gradient.addColorStop(0, "#2a2a35");   // Dark top (back)
+      gradient.addColorStop(0.7, "#404050"); // Medium sides  
+      gradient.addColorStop(1, "#6a6a75");   // Lighter bottom (belly)
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 256, 256);
+      
+      // Add some spots/markings
+      ctx.fillStyle = "#1a1a25";
+      for (let i = 0; i < 8; i++) {
+        const x = Math.random() * 200 + 20;
+        const y = Math.random() * 150 + 20;
+        const size = Math.random() * 15 + 5;
+        ctx.beginPath();
+        ctx.ellipse(x, y, size, size * 0.6, 0, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+      
+      sharkTexture.update();
+      sharkMaterial.diffuseTexture = sharkTexture;
+      
+      sharkMesh.material = sharkMaterial;
+      sharkMesh.setEnabled(false); // Hide template
+      
+      this.sharkTemplate = sharkMesh;
+      
+      console.log("Realistic shark template created successfully");
+      
+    } catch (error) {
+      console.warn("Failed to create realistic shark template, using fallback:", error);
+      
+      // Fallback to simple but better than box shape
+      const fallbackShark = BABYLON.MeshBuilder.CreateSphere("sharkFallback", {
+        diameterX: 3.5,
+        diameterY: 0.8,
+        diameterZ: 1.0
+      }, this.scene);
+      
+      const fallbackMaterial = new BABYLON.StandardMaterial("fallbackSharkMat", this.scene);
+      fallbackMaterial.diffuseColor = new BABYLON.Color3(0.2, 0.2, 0.25);
+      fallbackShark.material = fallbackMaterial;
+      fallbackShark.setEnabled(false);
+      
+      this.sharkTemplate = fallbackShark;
+    }
+  }
+  
   applyColorToNode(node, rgbArray) {
     if (!rgbArray || !Array.isArray(rgbArray)) return;
     const [r, g, b] = rgbArray;
