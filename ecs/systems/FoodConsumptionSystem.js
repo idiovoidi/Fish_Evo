@@ -7,10 +7,10 @@ import { Renderable } from '../components/Renderable.js';
 import { FishTag, FoodTag } from '../components/Tags.js';
 import { SpatialHashSystem } from './SpatialHashSystem.js';
 
-const FOOD_DETECTION_RADIUS = 3.0;
-const FOOD_CONSUMPTION_RADIUS = 1.0;
-const FOOD_ENERGY_VALUE = 0.3; // How much hunger is reduced per food item
-const FOOD_SEEK_MULTIPLIER = 2.0; // Speed boost when seeking food
+const FOOD_DETECTION_RADIUS = 8.0; // Increased detection range
+const FOOD_CONSUMPTION_RADIUS = 1.5;
+const FOOD_ENERGY_VALUE = 0.4; // How much hunger is reduced per food item
+const FOOD_SEEK_MULTIPLIER = 3.5; // Stronger speed boost when seeking food
 
 /**
  * Food Consumption System - Handles fish finding, pursuing, and eating food
@@ -64,9 +64,9 @@ export class FoodConsumptionSystem extends window.ECSY.System {
       // Check if close enough to consume
       if (closestDistance <= FOOD_CONSUMPTION_RADIUS) {
         this.consumeFood(fish, closestFood, time);
-      } else if (fishBehavior.isHungry || fishHunger.value > 0.4) {
-        // Pursue the food if hungry
-        this.pursueFood(fish, fishPos, foodPos, fishVel, deltaTime);
+      } else if (fishBehavior.isHungry || fishHunger.value > 0.3) {
+        // Pursue the food if hungry (lowered threshold for more active feeding)
+        this.pursueFood(fish, fishPos, foodPos, fishVel, deltaTime, fishHunger.value);
       }
     });
     
@@ -75,9 +75,9 @@ export class FoodConsumptionSystem extends window.ECSY.System {
   }
   
   /**
-   * Make fish pursue food
+   * Make fish pursue food with desperation scaling
    */
-  pursueFood(fish, fishPos, foodPos, fishVel, deltaTime) {
+  pursueFood(fish, fishPos, foodPos, fishVel, deltaTime, hungerLevel) {
     const behavior = fish.getMutableComponent(Behavior);
     behavior.isHungry = true;
     
@@ -93,16 +93,20 @@ export class FoodConsumptionSystem extends window.ECSY.System {
       const dirY = dy / distance;
       const dirZ = dz / distance;
       
+      // Desperation increases with hunger - starving fish move faster
+      const desperationMultiplier = 1 + (hungerLevel * 1.5); // 1x to 2.5x based on hunger
+      
       // Apply food-seeking force
-      const seekForce = FOOD_SEEK_MULTIPLIER * deltaTime;
+      const seekForce = FOOD_SEEK_MULTIPLIER * deltaTime * desperationMultiplier;
       fishVel.x += dirX * seekForce;
-      fishVel.y += dirY * seekForce * 0.7; // Reduce vertical chasing
+      fishVel.y += dirY * seekForce * 0.8; // Slightly better vertical pursuit
       fishVel.z += dirZ * seekForce;
       
-      // Limit speed
+      // Limit speed - hungrier fish can go faster
+      const maxSpeedMultiplier = 1.2 + (hungerLevel * 0.3); // Up to 1.5x when starving
       const currentSpeed = Math.sqrt(fishVel.x*fishVel.x + fishVel.y*fishVel.y + fishVel.z*fishVel.z);
-      if (currentSpeed > fishVel.maxSpeed * 1.2) { // Allow slight speed boost when hungry
-        const scale = (fishVel.maxSpeed * 1.2) / currentSpeed;
+      if (currentSpeed > fishVel.maxSpeed * maxSpeedMultiplier) {
+        const scale = (fishVel.maxSpeed * maxSpeedMultiplier) / currentSpeed;
         fishVel.x *= scale;
         fishVel.y *= scale;
         fishVel.z *= scale;

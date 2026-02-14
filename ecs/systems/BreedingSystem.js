@@ -6,10 +6,12 @@ import { Hunger } from '../components/Hunger.js';
 import { Renderable } from '../components/Renderable.js';
 import { FishFactory } from '../entities/FishFactory.js';
 
-const BREED_DISTANCE = 5;
-const MUTATION_RATE = 0.05; // 5%
-const MUTATION_VARIATION = 0.1; // ±10%
+const BREED_DISTANCE = 4; // Closer proximity required
+const MUTATION_RATE = 0.08; // 8% - slightly higher for more variation
+const MUTATION_VARIATION = 0.15; // ±15% - more dramatic mutations
 const BREED_DISTANCE_SQ = BREED_DISTANCE*BREED_DISTANCE;
+const MIN_HEALTH_TO_BREED = 60; // Need good health to breed
+const MAX_HUNGER_TO_BREED = 0.3; // Must be well-fed
 
 /**
  * Enhanced Breeding System with visual animations
@@ -30,7 +32,13 @@ export class BreedingSystem extends window.ECSY.System {
       const beh1 = e1.getMutableComponent(Behavior);
       
       // Check breeding eligibility for first fish
-      if (!age1.isAdult || time - beh1.lastBreedTime < beh1.breedCooldown || e1.getComponent(Hunger).value > 0.2) {
+      const hunger1 = e1.getComponent(Hunger);
+      const health1 = e1.getComponent(Health);
+      
+      if (!age1.isAdult || 
+          time - beh1.lastBreedTime < beh1.breedCooldown || 
+          hunger1.value > MAX_HUNGER_TO_BREED ||
+          (health1 && health1.current < MIN_HEALTH_TO_BREED)) {
         continue;
       }
       
@@ -42,7 +50,13 @@ export class BreedingSystem extends window.ECSY.System {
         const beh2 = e2.getMutableComponent(Behavior);
         
         // Check breeding eligibility for second fish
-        if (!age2.isAdult || time - beh2.lastBreedTime < beh2.breedCooldown || e2.getComponent(Hunger).value > 0.2) {
+        const hunger2 = e2.getComponent(Hunger);
+        const health2 = e2.getComponent(Health);
+        
+        if (!age2.isAdult || 
+            time - beh2.lastBreedTime < beh2.breedCooldown || 
+            hunger2.value > MAX_HUNGER_TO_BREED ||
+            (health2 && health2.current < MIN_HEALTH_TO_BREED)) {
           continue;
         }
         
@@ -55,14 +69,20 @@ export class BreedingSystem extends window.ECSY.System {
         if (distSq > BREED_DISTANCE_SQ) continue;
         
         // Successful breeding!
-        this.createOffspring(e1, e2);
+        const offspring = this.createOffspring(e1, e2);
         beh1.lastBreedTime = beh2.lastBreedTime = time;
+        
+        // Breeding costs energy - increase hunger slightly
+        const hunger1Mut = e1.getMutableComponent(Hunger);
+        const hunger2Mut = e2.getMutableComponent(Hunger);
+        hunger1Mut.value = Math.min(1.0, hunger1Mut.value + 0.15);
+        hunger2Mut.value = Math.min(1.0, hunger2Mut.value + 0.15);
         
         // Start breeding animation for both parents
         this.startBreedingAnimation(e1, time);
         this.startBreedingAnimation(e2, time);
         
-        console.log('Fish breeding successful!');
+        console.log(`Fish breeding successful! Offspring traits: size=${offspring.getComponent(Genetics).size.toFixed(2)}, speed=${offspring.getComponent(Genetics).speed.toFixed(2)}`);
         break;
       }
     }

@@ -29,21 +29,24 @@ export class HungerSystem extends window.ECSY.System {
         const behavior = entity.getMutableComponent(Behavior);  // Get mutable reference
         
         // Update hunger status based on threshold
-        behavior.isHungry = hunger.value > 0.5; // Hungry when over 50%
+        behavior.isHungry = hunger.value > 0.4; // Hungry when over 40%
         
-        // If extremely hungry, might affect health
-        if (entity.hasComponent(Health) && hunger.value > 0.9) {
+        // Starvation damage increases with hunger level
+        if (entity.hasComponent(Health) && hunger.value > 0.7) {
           const health = entity.getMutableComponent(Health);  // Get mutable reference
           
-          // Very hungry entities take damage
+          // Hungry entities take damage, scaling with hunger severity
           if (!health.isDead) {
-            const starvationDamage = 5 * metabolismRate * deltaTime; // Scaled by metabolism
+            // Damage starts at 70% hunger and increases exponentially
+            const hungerSeverity = Math.max(0, hunger.value - 0.7) / 0.3; // 0 to 1 scale
+            const starvationDamage = 3 * Math.pow(hungerSeverity, 2) * metabolismRate * deltaTime;
             health.current = Math.max(0, health.current - starvationDamage);
             
             // Check for death
             if (health.current <= 0) {
               health.isDead = true;
               health.current = 0;
+              console.log(`Entity ${entity.id} died from starvation (hunger: ${hunger.value.toFixed(2)})`);
               
               // Stop movement when dead
               if (entity.hasComponent(Velocity)) {

@@ -6,14 +6,14 @@
 function createFishModel(scene) {
   // Create fish body - capsule for streamlined shape
   const body = BABYLON.MeshBuilder.CreateCapsule(
-    'fishBody',
+    "fishBody",
     { radius: 0.25, height: 1.2, tessellation: 16 },
     scene
   );
 
   // Create tail - fan-shaped for realistic fish tail
   const tail = BABYLON.MeshBuilder.CreateCylinder(
-    'fishTail',
+    "fishTail",
     { diameterTop: 0.45, diameterBottom: 0.05, height: 0.5, tessellation: 12 },
     scene
   );
@@ -22,7 +22,7 @@ function createFishModel(scene) {
 
   // Create dorsal fin - top fin
   const dorsalFin = BABYLON.MeshBuilder.CreateCylinder(
-    'dorsalFin',
+    "dorsalFin",
     { diameterTop: 0.05, diameterBottom: 0.25, height: 0.4, tessellation: 8 },
     scene
   );
@@ -31,7 +31,7 @@ function createFishModel(scene) {
 
   // Create pectoral fins - side fins (larger and more prominent)
   const finL = BABYLON.MeshBuilder.CreateCylinder(
-    'fishFinL',
+    "fishFinL",
     { diameterTop: 0.08, diameterBottom: 0.3, height: 0.35, tessellation: 10 },
     scene
   );
@@ -39,13 +39,13 @@ function createFishModel(scene) {
   finL.rotation.x = Math.PI / 2;
   finL.position.set(0.3, -0.05, 0.1);
 
-  const finR = finL.clone('fishFinR');
+  const finR = finL.clone("fishFinR");
   finR.rotation.z = Math.PI / 3;
   finR.position.x = -0.3;
 
   // Create pelvic fins - smaller bottom fins
   const pelvicFinL = BABYLON.MeshBuilder.CreateCylinder(
-    'pelvicFinL',
+    "pelvicFinL",
     { diameterTop: 0.05, diameterBottom: 0.15, height: 0.2, tessellation: 8 },
     scene
   );
@@ -53,19 +53,19 @@ function createFishModel(scene) {
   pelvicFinL.rotation.x = Math.PI / 2;
   pelvicFinL.position.set(0.15, -0.15, -0.2);
 
-  const pelvicFinR = pelvicFinL.clone('pelvicFinR');
+  const pelvicFinR = pelvicFinL.clone("pelvicFinR");
   pelvicFinR.rotation.z = Math.PI / 6;
   pelvicFinR.position.x = -0.15;
 
   // Create eyes - small spheres
   const eyeL = BABYLON.MeshBuilder.CreateSphere(
-    'eyeL',
+    "eyeL",
     { diameter: 0.08, segments: 8 },
     scene
   );
   eyeL.position.set(0.15, 0.1, 0.5);
 
-  const eyeR = eyeL.clone('eyeR');
+  const eyeR = eyeL.clone("eyeR");
   eyeR.position.x = -0.15;
 
   // Merge all parts into a single mesh for performance
@@ -77,10 +77,10 @@ function createFishModel(scene) {
     false,
     true
   );
-  fishMesh.name = 'fishPrimitiveTemplate';
+  fishMesh.name = "fishPrimitiveTemplate";
 
   // Create enhanced fish material with PBR for better appearance
-  const fishMaterial = new BABYLON.PBRMaterial('fishMaterial', scene);
+  const fishMaterial = new BABYLON.PBRMaterial("fishMaterial", scene);
   fishMaterial.albedoColor = new BABYLON.Color3(0.4, 0.7, 0.9); // Blue-cyan
   fishMaterial.metallic = 0.3; // Slight metallic sheen
   fishMaterial.roughness = 0.5; // Semi-glossy, wet appearance
@@ -89,7 +89,7 @@ function createFishModel(scene) {
   fishMesh.material = fishMaterial;
   fishMesh.setEnabled(false); // Hide template
 
-  console.log('Enhanced fish primitive template created successfully');
+  console.log("Enhanced fish primitive template created successfully");
 
   return fishMesh;
 }

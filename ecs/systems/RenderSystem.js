@@ -1,6 +1,8 @@
 import { Position } from '../components/Position.js';
 import { Velocity } from '../components/Velocity.js';
 import { Renderable } from '../components/Renderable.js';
+import { Hunger } from '../components/Hunger.js';
+import { Health } from '../components/Health.js';
 import { FishTag, SharkTag } from '../components/Tags.js';
 
 /**
@@ -25,6 +27,11 @@ export class RenderSystem extends window.ECSY.System {
         // Update orientation for moving entities (fish and sharks)
         if (entity.hasComponent(Velocity) && (entity.hasComponent(FishTag) || entity.hasComponent(SharkTag))) {
           this.updateEntityOrientation(entity, renderable);
+        }
+        
+        // Update visual state based on hunger and health (fish only)
+        if (entity.hasComponent(FishTag)) {
+          this.updateFishVisualState(entity, renderable);
         }
         
       } catch (err) {
@@ -79,6 +86,69 @@ export class RenderSystem extends window.ECSY.System {
       if (entity.hasComponent(FishTag)) {
         const bankingAmount = Math.sin(angleDiff) * 0.2; // Banking when turning
         renderable.model.rotation.z += (bankingAmount - renderable.model.rotation.z) * lerpFactor;
+      }
+    }
+  }
+  
+  /**
+   * Update fish visual state based on hunger and health
+   */
+  updateFishVisualState(entity, renderable) {
+    const hunger = entity.getComponent(Hunger);
+    const health = entity.getComponent(Health);
+    
+    if (!hunger || !renderable.model) return;
+    
+    // Visual indicators for hunger state
+    if (hunger.value > 0.8) {
+      // Starving - make fish slightly darker and add subtle pulsing
+      const pulsePhase = (performance.now() / 500) % (Math.PI * 2);
+      const pulseFactor = 0.85 + Math.sin(pulsePhase) * 0.15;
+      
+      // Apply to all child meshes
+      if (renderable.model.getChildMeshes) {
+        renderable.model.getChildMeshes().forEach(mesh => {
+          if (mesh.material && mesh.material.emissiveColor) {
+            // Add red tint for starving fish
+            mesh.material.emissiveColor.r = 0.3 * pulseFactor;
+            mesh.material.emissiveColor.g = 0;
+            mesh.material.emissiveColor.b = 0;
+          }
+        });
+      } else if (renderable.model.material && renderable.model.material.emissiveColor) {
+        renderable.model.material.emissiveColor.r = 0.3 * pulseFactor;
+        renderable.model.material.emissiveColor.g = 0;
+        renderable.model.material.emissiveColor.b = 0;
+      }
+    } else if (hunger.value > 0.5) {
+      // Hungry - slight yellow tint
+      if (renderable.model.getChildMeshes) {
+        renderable.model.getChildMeshes().forEach(mesh => {
+          if (mesh.material && mesh.material.emissiveColor) {
+            mesh.material.emissiveColor.r = 0.1;
+            mesh.material.emissiveColor.g = 0.1;
+            mesh.material.emissiveColor.b = 0;
+          }
+        });
+      } else if (renderable.model.material && renderable.model.material.emissiveColor) {
+        renderable.model.material.emissiveColor.r = 0.1;
+        renderable.model.material.emissiveColor.g = 0.1;
+        renderable.model.material.emissiveColor.b = 0;
+      }
+    } else {
+      // Well-fed - reset emissive color
+      if (renderable.model.getChildMeshes) {
+        renderable.model.getChildMeshes().forEach(mesh => {
+          if (mesh.material && mesh.material.emissiveColor) {
+            mesh.material.emissiveColor.r = 0;
+            mesh.material.emissiveColor.g = 0;
+            mesh.material.emissiveColor.b = 0;
+          }
+        });
+      } else if (renderable.model.material && renderable.model.material.emissiveColor) {
+        renderable.model.material.emissiveColor.r = 0;
+        renderable.model.material.emissiveColor.g = 0;
+        renderable.model.material.emissiveColor.b = 0;
       }
     }
   }

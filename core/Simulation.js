@@ -29,6 +29,8 @@ import { SpatialHashSystem } from '../ecs/systems/SpatialHashSystem.js';
 import { WanderSystem } from '../ecs/systems/WanderSystem.js';
 import { SchoolingSystem } from '../ecs/systems/SchoolingSystem.js';
 import { CrabSystem } from '../ecs/systems/CrabSystem.js';
+import { DeathSystem } from '../ecs/systems/DeathSystem.js';
+import { PopulationStatsSystem } from '../ecs/systems/PopulationStatsSystem.js';
 
 // Import entity factories
 import { FishFactory } from '../ecs/entities/FishFactory.js';
@@ -105,6 +107,7 @@ export class Simulation {
       .registerSystem(FoodSpawnerSystem)       // Spawn food
       .registerSystem(AgingSystem)             // Update age and maturity
       .registerSystem(HungerSystem)            // Update hunger states
+      .registerSystem(DeathSystem)             // Handle death and cleanup
       .registerSystem(FoodConsumptionSystem)   // Handle food consumption
       .registerSystem(BreedingSystem)          // Handle breeding & offspring
       .registerSystem(SharkSystem)             // Predator logic
@@ -112,7 +115,8 @@ export class Simulation {
       .registerSystem(WanderSystem)            // Simple wander to keep fish moving
       .registerSystem(SchoolingSystem)         // Cohesion/Separation
       .registerSystem(MovementSystem)          // Move entities
-      .registerSystem(RenderSystem);           // Update visual positions and animations
+      .registerSystem(RenderSystem)            // Update visual positions and animations
+      .registerSystem(PopulationStatsSystem);  // Track population statistics
   }
   
   /**
@@ -152,8 +156,8 @@ export class Simulation {
    */
   createInitialEntities() {
     // Create multiple small schools of fish at different locations
-    const schoolCount = 4;
-    const fishPerSchool = 5;
+    const schoolCount = 3;
+    const fishPerSchool = 4; // Reduced initial population for more competition
     
     for (let school = 0; school < schoolCount; school++) {
       // Define school center position
@@ -175,13 +179,13 @@ export class Simulation {
       }
     }
     
-    // Create some initial food scattered around
-    for (let i = 0; i < 15; i++) {
+    // Create some initial food scattered around (less to create scarcity)
+    for (let i = 0; i < 8; i++) {
       const food = FoodFactory.create(this.world, {
         position: {
-          x: (Math.random() - 0.5) * 100,
-          y: 2 + Math.random() * 25,
-          z: (Math.random() - 0.5) * 100
+          x: (Math.random() - 0.5) * 80,
+          y: 5 + Math.random() * 20,
+          z: (Math.random() - 0.5) * 80
         }
       });
     }

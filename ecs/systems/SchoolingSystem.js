@@ -1,6 +1,7 @@
 import { Position } from '../components/Position.js';
 import { Velocity } from '../components/Velocity.js';
 import { Behavior } from '../components/Behavior.js';
+import { Hunger } from '../components/Hunger.js';
 import { FishTag } from '../components/Tags.js';
 import { SpatialHashSystem } from './SpatialHashSystem.js';
 
@@ -32,7 +33,10 @@ export class SchoolingSystem extends window.ECSY.System {
       if (!neighbors || neighbors.length <= 1) return; // Need at least one other fish
 
       // Schooling preference affects how much fish follow boids rules
-      const schoolPref = beh?.schoolingPreference ?? 0.8;
+      // Hungry fish are less social and more individualistic
+      const hunger = entity.getComponent(Hunger);
+      const hungerPenalty = hunger ? Math.min(hunger.value * 0.7, 0.6) : 0; // Up to 60% reduction
+      const schoolPref = Math.max(0.2, (beh?.schoolingPreference ?? 0.8) - hungerPenalty);
       const personalSpace = beh?.personalSpace ?? 1.0;
       
       let separationCount = 0, cohesionCount = 0, alignmentCount = 0;
@@ -136,6 +140,10 @@ export class SchoolingSystem extends window.ECSY.System {
 }
 
 SchoolingSystem.queries = { fish: { components: [FishTag, Position, Velocity] } };
+
+
+
+
 
 
 
