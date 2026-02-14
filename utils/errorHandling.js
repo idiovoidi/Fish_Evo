@@ -1,6 +1,8 @@
 /**
- * Error handling utilities for the simulation
- * Uses Higher-Order Functions to wrap critical functions with error checking
+ * Error handling utilities for the simulation.
+ * Uses Higher-Order Functions to wrap critical functions with error checking.
+ * withErrorHandler is used by Simulation; withComponentValidation and withDebugLogging
+ * are optional and can be applied to system/entity logic where needed.
  */
 
 /**
@@ -58,21 +60,20 @@ export function withDebugLogging(fn, fnName) {
 }
 
 /**
- * Ensures the function never takes longer than a timeout
- * @param {Function} fn - The function to apply timeout to
- * @param {number} timeoutMs - Timeout in milliseconds
- * @returns {Function} Wrapped function with timeout
+ * Logs a warning if the function runs longer than the given threshold.
+ * Does not actually interrupt execution (no real timeout).
+ * @param {Function} fn - The function to wrap
+ * @param {number} warnThresholdMs - Log warning if execution exceeds this (ms)
+ * @returns {Function} Wrapped function
  */
-export function withTimeout(fn, timeoutMs = 100) {
+export function withSlowOperationWarning(fn, warnThresholdMs = 100) {
   return function(...args) {
     const startTime = performance.now();
     const result = fn.apply(this, args);
-    const elapsedTime = performance.now() - startTime;
-    
-    if (elapsedTime > timeoutMs) {
-      console.warn(`Function execution took ${elapsedTime.toFixed(2)}ms, which exceeds the timeout of ${timeoutMs}ms`);
+    const elapsed = performance.now() - startTime;
+    if (elapsed > warnThresholdMs) {
+      console.warn(`[Slow] Execution took ${elapsed.toFixed(2)}ms (threshold: ${warnThresholdMs}ms)`);
     }
-    
     return result;
   };
 } 

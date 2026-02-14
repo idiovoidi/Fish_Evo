@@ -6,6 +6,8 @@ import { Velocity } from '../components/Velocity.js';
 import { Renderable } from '../components/Renderable.js';
 import { FishTag, FoodTag } from '../components/Tags.js';
 import { SpatialHashSystem } from './SpatialHashSystem.js';
+import { clampVelocity, distance } from '../../utils/velocity.js';
+import { logger } from '../../utils/logger.js';
 
 const FOOD_DETECTION_RADIUS = 8.0; // Increased detection range
 const FOOD_CONSUMPTION_RADIUS = 1.5;
@@ -49,10 +51,9 @@ export class FoodConsumptionSystem extends window.ECSY.System {
       nearbyFood.forEach(food => {
         const foodPos = food.getComponent(Position);
         if (!foodPos) return;
-        
-        const distance = this.getDistance(fishPos, foodPos);
-        if (distance < closestDistance) {
-          closestDistance = distance;
+        const d = distance(fishPos, foodPos);
+        if (d < closestDistance) {
+          closestDistance = d;
           closestFood = food;
         }
       });
@@ -102,15 +103,7 @@ export class FoodConsumptionSystem extends window.ECSY.System {
       fishVel.y += dirY * seekForce * 0.8; // Slightly better vertical pursuit
       fishVel.z += dirZ * seekForce;
       
-      // Limit speed - hungrier fish can go faster
-      const maxSpeedMultiplier = 1.2 + (hungerLevel * 0.3); // Up to 1.5x when starving
-      const currentSpeed = Math.sqrt(fishVel.x*fishVel.x + fishVel.y*fishVel.y + fishVel.z*fishVel.z);
-      if (currentSpeed > fishVel.maxSpeed * maxSpeedMultiplier) {
-        const scale = (fishVel.maxSpeed * maxSpeedMultiplier) / currentSpeed;
-        fishVel.x *= scale;
-        fishVel.y *= scale;
-        fishVel.z *= scale;
-      }
+      clampVelocity(fishVel, { maxSpeedMultiplier: 1.2 + hungerLevel * 0.3 });
     }
   }
   
@@ -135,10 +128,8 @@ export class FoodConsumptionSystem extends window.ECSY.System {
     // Start eating animation
     this.startEatingAnimation(fish, time);
     
-    // Remove the food entity
     food.remove();
-    
-    console.log(`Fish consumed food! Hunger: ${fishHunger.value.toFixed(2)}, Health: ${fishHealth?.current || 'N/A'}`);
+    logger.debug(`Fish consumed food! Hunger: ${fishHunger.value.toFixed(2)}, Health: ${fishHealth?.current ?? 'N/A'}`);
   }
   
   /**
@@ -189,15 +180,6 @@ export class FoodConsumptionSystem extends window.ECSY.System {
     });
   }
   
-  /**
-   * Calculate distance between two positions
-   */
-  getDistance(pos1, pos2) {
-    const dx = pos1.x - pos2.x;
-    const dy = pos1.y - pos2.y;
-    const dz = pos1.z - pos2.z;
-    return Math.sqrt(dx*dx + dy*dy + dz*dz);
-  }
 }
 
 FoodConsumptionSystem.queries = {

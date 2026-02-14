@@ -4,6 +4,7 @@ import { Behavior } from '../components/Behavior.js';
 import { Hunger } from '../components/Hunger.js';
 import { FishTag } from '../components/Tags.js';
 import { SpatialHashSystem } from './SpatialHashSystem.js';
+import { clampVelocity } from '../../utils/velocity.js';
 
 // Advanced schooling system implementing boids algorithm: cohesion + separation + alignment
 export class SchoolingSystem extends window.ECSY.System {
@@ -122,19 +123,7 @@ export class SchoolingSystem extends window.ECSY.System {
       vel.x += steer.x * dt;
       vel.y += steer.y * dt;
       vel.z += steer.z * dt;
-      
-      // Maintain reasonable speed limits
-      const speedSq = vel.x*vel.x + vel.y*vel.y + vel.z*vel.z;
-      const maxSq = vel.maxSpeed * vel.maxSpeed;
-      const minSpeed = vel.maxSpeed * 0.3; // Minimum 30% of max speed
-      
-      if (speedSq > maxSq) {
-        const s = vel.maxSpeed / Math.sqrt(speedSq);
-        vel.x *= s; vel.y *= s; vel.z *= s;
-      } else if (speedSq < minSpeed * minSpeed) {
-        const s = minSpeed / Math.sqrt(speedSq);
-        vel.x *= s; vel.y *= s; vel.z *= s;
-      }
+      clampVelocity(vel, { minSpeedFactor: 0.3 });
     });
   }
 }

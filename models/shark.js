@@ -3,7 +3,7 @@
  * @param {BABYLON.Scene} scene - The Babylon.js scene
  * @returns {BABYLON.Mesh} The shark mesh template
  */
-function createSharkModel(scene) {
+export function createSharkModel(scene) {
   // Main body - sleek elongated ellipsoid with higher segment count for smoothness
   const bodyLength = 4.0;
   const bodyHeight = 1.0;

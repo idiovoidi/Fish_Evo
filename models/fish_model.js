@@ -3,7 +3,7 @@
  * @param {BABYLON.Scene} scene - The Babylon.js scene
  * @returns {BABYLON.Mesh} The fish mesh template
  */
-function createFishModel(scene) {
+export function createFishModel(scene) {
   // Create fish body - capsule for streamlined shape
   const body = BABYLON.MeshBuilder.CreateCapsule(
     "fishBody",

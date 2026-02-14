@@ -1,6 +1,7 @@
 import { Health } from '../components/Health.js';
 import { Renderable } from '../components/Renderable.js';
 import { Velocity } from '../components/Velocity.js';
+import { logger } from '../../utils/logger.js';
 
 /**
  * Death System - Handles entity death, cleanup, and visual effects
@@ -19,9 +20,8 @@ export class DeathSystem extends window.ECSY.System {
       const health = entity.getComponent(Health);
       
       if (health.isDead && !this.deathAnimations.has(entity)) {
-        // Start death animation
         this.startDeathAnimation(entity, time);
-        console.log(`Entity ${entity.id} has died`);
+        logger.debug(`Entity ${entity.id} has died`);
       }
     });
     
@@ -67,8 +67,7 @@ export class DeathSystem extends window.ECSY.System {
       const progress = Math.min(elapsed / animation.duration, 1.0);
       
       if (progress >= 1.0) {
-        // Animation complete - remove entity
-        console.log(`Removing dead entity ${entity.id}`);
+        logger.debug(`Removing dead entity ${entity.id}`);
         entity.remove();
         this.deathAnimations.delete(entity);
       } else {

@@ -2,7 +2,7 @@ import { Hunger } from '../components/Hunger.js';
 import { Behavior } from '../components/Behavior.js';
 import { Health } from '../components/Health.js';
 import { Genetics } from '../components/Genetics.js';
-import { Velocity } from '../components/Velocity.js';
+import { logger } from '../../utils/logger.js';
 
 /**
  * Hunger System - Increases hunger over time and updates behavior accordingly
@@ -42,19 +42,11 @@ export class HungerSystem extends window.ECSY.System {
             const starvationDamage = 3 * Math.pow(hungerSeverity, 2) * metabolismRate * deltaTime;
             health.current = Math.max(0, health.current - starvationDamage);
             
-            // Check for death
+            // Mark dead; DeathSystem will handle sinking and removal
             if (health.current <= 0) {
               health.isDead = true;
               health.current = 0;
-              console.log(`Entity ${entity.id} died from starvation (hunger: ${hunger.value.toFixed(2)})`);
-              
-              // Stop movement when dead
-              if (entity.hasComponent(Velocity)) {
-                const velocity = entity.getMutableComponent(Velocity);
-                velocity.x = 0;
-                velocity.y = -0.5; // Sink slowly
-                velocity.z = 0;
-              }
+              logger.debug(`Entity ${entity.id} died from starvation (hunger: ${hunger.value.toFixed(2)})`);
             }
           }
         }

@@ -1,6 +1,10 @@
+import { Position } from '../components/Position.js';
+
 const CELL_SIZE = 10;
 
-function cellKey(ix,iy,iz){return `${ix},${iy},${iz}`;}
+function cellKey(ix, iy, iz) {
+  return `${ix},${iy},${iz}`;
+}
 
 export class SpatialHashSystem extends window.ECSY.System{
   init(){
@@ -48,7 +52,6 @@ export class SpatialHashSystem extends window.ECSY.System{
   }
 }
 
-import { Position } from '../components/Position.js';
-SpatialHashSystem.queries={
-  movable:{components:[Position]}
+SpatialHashSystem.queries = {
+  movable: { components: [Position] }
 }; 

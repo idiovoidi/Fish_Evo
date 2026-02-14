@@ -62,15 +62,12 @@
                 console.log("Loading application scripts...");
                 
                 // Load application scripts in order (legacy gameplay scripts removed; ECS will handle logic)
+                // Model scripts (fish, food, shark, crab) are loaded as ESM by BabylonMeshSystem
                 const scripts = [
                     'core/Camera.js',
                     'config/simulation_config.js',
                     'Day-Night_Cycle.js',
                     'crab.js',
-                    'models/crab_model.js',
-                    'models/shark.js',
-                    'models/fish_model.js',
-                    'models/food_model.js',
                     'landscape.js',
                     'coral.js',
                     'ocean_debris.js',

@@ -1,6 +1,10 @@
 import { Renderable } from "../components/Renderable.js";
 import { FishTag, FoodTag, SharkTag, CrabTag } from "../components/Tags.js";
 import { Genetics } from "../components/Genetics.js";
+import { createFishModel } from "../../models/fish_model.js";
+import { createFoodModel } from "../../models/food_model.js";
+import { createSharkModel } from "../../models/shark.js";
+import { createCrabModel } from "../../models/crab_model.js";
 
 /**
  * BabylonMeshSystem - Creates and manages Babylon.js meshes for entities

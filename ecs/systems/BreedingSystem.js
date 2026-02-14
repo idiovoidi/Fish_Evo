@@ -3,8 +3,10 @@ import { Genetics } from '../components/Genetics.js';
 import { Age } from '../components/Age.js';
 import { Behavior } from '../components/Behavior.js';
 import { Hunger } from '../components/Hunger.js';
+import { Health } from '../components/Health.js';
 import { Renderable } from '../components/Renderable.js';
 import { FishFactory } from '../entities/FishFactory.js';
+import { logger } from '../../utils/logger.js';
 
 const BREED_DISTANCE = 4; // Closer proximity required
 const MUTATION_RATE = 0.08; // 8% - slightly higher for more variation
@@ -82,7 +84,7 @@ export class BreedingSystem extends window.ECSY.System {
         this.startBreedingAnimation(e1, time);
         this.startBreedingAnimation(e2, time);
         
-        console.log(`Fish breeding successful! Offspring traits: size=${offspring.getComponent(Genetics).size.toFixed(2)}, speed=${offspring.getComponent(Genetics).speed.toFixed(2)}`);
+        logger.debug(`Fish breeding successful! Offspring traits: size=${offspring.getComponent(Genetics).size.toFixed(2)}, speed=${offspring.getComponent(Genetics).speed.toFixed(2)}`);
         break;
       }
     }
@@ -121,8 +123,7 @@ export class BreedingSystem extends window.ECSY.System {
       genetics: childTraits
     });
     
-    console.log(`Offspring created with traits: size=${childTraits.size.toFixed(2)}, speed=${childTraits.speed.toFixed(2)}, metabolism=${childTraits.metabolism.toFixed(2)}`);
-    
+    logger.debug(`Offspring created with traits: size=${childTraits.size.toFixed(2)}, speed=${childTraits.speed.toFixed(2)}, metabolism=${childTraits.metabolism.toFixed(2)}`);
     return offspring;
   }
 

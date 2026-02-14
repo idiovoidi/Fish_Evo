@@ -39,6 +39,7 @@ import { SharkFactory } from '../ecs/entities/SharkFactory.js';
 import { CrabFactory } from '../ecs/entities/CrabFactory.js';
 
 import { UIManager } from './UIManager.js';
+import { setDebugLogging } from '../utils/logger.js';
 
 /**
  * Core simulation class that manages the ECS world and game loop
@@ -129,8 +130,8 @@ export class Simulation {
     // Pass the scene to systems that need it
     this.babylonMeshSystem.setScene(scene);
     
-    // Configure food spawner from SimulationConfig when available
     const cfg = (typeof window !== 'undefined' && window.SimulationConfig) ? window.SimulationConfig : null;
+    setDebugLogging(!!cfg?.debug);
     const foodCfg = cfg?.food || {};
     this.foodSpawnerSystem.updateConfig({
       spawnInterval: foodCfg.spawnInterval || 2000,
@@ -145,10 +146,7 @@ export class Simulation {
     // Start the game loop
     this.start();
 
-    this.uiManager = new UIManager(scene, this);
-    
-    // Make UIManager globally accessible for button callbacks
-    window.uiManager = this.uiManager;
+    this.uiManager = new UIManager(scene, this, { Position, Renderable });
   }
   
   /**

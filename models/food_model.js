@@ -3,7 +3,7 @@
  * @param {BABYLON.Scene} scene - The Babylon.js scene
  * @returns {BABYLON.Mesh} The food mesh template
  */
-function createFoodModel(scene) {
+export function createFoodModel(scene) {
   // Create food sphere - small particle with better tessellation
   const foodSphere = BABYLON.MeshBuilder.CreateSphere(
     'foodTemplate',

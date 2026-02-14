@@ -91,65 +91,44 @@ export class RenderSystem extends window.ECSY.System {
   }
   
   /**
+   * Set emissive color on renderable model (child meshes or root).
+   * @param {object} renderable - Renderable component (has model)
+   * @param {number} r
+   * @param {number} g
+   * @param {number} b
+   */
+  setEmissiveOnRenderable(renderable, r, g, b) {
+    if (!renderable?.model) return;
+    if (renderable.model.getChildMeshes && renderable.model.getChildMeshes().length > 0) {
+      renderable.model.getChildMeshes().forEach(mesh => {
+        if (mesh.material?.emissiveColor) {
+          mesh.material.emissiveColor.r = r;
+          mesh.material.emissiveColor.g = g;
+          mesh.material.emissiveColor.b = b;
+        }
+      });
+    } else if (renderable.model.material?.emissiveColor) {
+      renderable.model.material.emissiveColor.r = r;
+      renderable.model.material.emissiveColor.g = g;
+      renderable.model.material.emissiveColor.b = b;
+    }
+  }
+
+  /**
    * Update fish visual state based on hunger and health
    */
   updateFishVisualState(entity, renderable) {
     const hunger = entity.getComponent(Hunger);
-    const health = entity.getComponent(Health);
-    
     if (!hunger || !renderable.model) return;
-    
-    // Visual indicators for hunger state
+
     if (hunger.value > 0.8) {
-      // Starving - make fish slightly darker and add subtle pulsing
       const pulsePhase = (performance.now() / 500) % (Math.PI * 2);
       const pulseFactor = 0.85 + Math.sin(pulsePhase) * 0.15;
-      
-      // Apply to all child meshes
-      if (renderable.model.getChildMeshes) {
-        renderable.model.getChildMeshes().forEach(mesh => {
-          if (mesh.material && mesh.material.emissiveColor) {
-            // Add red tint for starving fish
-            mesh.material.emissiveColor.r = 0.3 * pulseFactor;
-            mesh.material.emissiveColor.g = 0;
-            mesh.material.emissiveColor.b = 0;
-          }
-        });
-      } else if (renderable.model.material && renderable.model.material.emissiveColor) {
-        renderable.model.material.emissiveColor.r = 0.3 * pulseFactor;
-        renderable.model.material.emissiveColor.g = 0;
-        renderable.model.material.emissiveColor.b = 0;
-      }
+      this.setEmissiveOnRenderable(renderable, 0.3 * pulseFactor, 0, 0);
     } else if (hunger.value > 0.5) {
-      // Hungry - slight yellow tint
-      if (renderable.model.getChildMeshes) {
-        renderable.model.getChildMeshes().forEach(mesh => {
-          if (mesh.material && mesh.material.emissiveColor) {
-            mesh.material.emissiveColor.r = 0.1;
-            mesh.material.emissiveColor.g = 0.1;
-            mesh.material.emissiveColor.b = 0;
-          }
-        });
-      } else if (renderable.model.material && renderable.model.material.emissiveColor) {
-        renderable.model.material.emissiveColor.r = 0.1;
-        renderable.model.material.emissiveColor.g = 0.1;
-        renderable.model.material.emissiveColor.b = 0;
-      }
+      this.setEmissiveOnRenderable(renderable, 0.1, 0.1, 0);
     } else {
-      // Well-fed - reset emissive color
-      if (renderable.model.getChildMeshes) {
-        renderable.model.getChildMeshes().forEach(mesh => {
-          if (mesh.material && mesh.material.emissiveColor) {
-            mesh.material.emissiveColor.r = 0;
-            mesh.material.emissiveColor.g = 0;
-            mesh.material.emissiveColor.b = 0;
-          }
-        });
-      } else if (renderable.model.material && renderable.model.material.emissiveColor) {
-        renderable.model.material.emissiveColor.r = 0;
-        renderable.model.material.emissiveColor.g = 0;
-        renderable.model.material.emissiveColor.b = 0;
-      }
+      this.setEmissiveOnRenderable(renderable, 0, 0, 0);
     }
   }
 }

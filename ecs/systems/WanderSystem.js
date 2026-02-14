@@ -2,6 +2,7 @@ import { Velocity } from '../components/Velocity.js';
 import { Position } from '../components/Position.js';
 import { Behavior } from '../components/Behavior.js';
 import { FishTag } from '../components/Tags.js';
+import { clampVelocity } from '../../utils/velocity.js';
 
 // WanderSystem applies a simple random walk to fish velocities
 export class WanderSystem extends window.ECSY.System {
@@ -43,18 +44,7 @@ export class WanderSystem extends window.ECSY.System {
         if (pos.y < 2) vel.y += 2 * dt;  // Pull up from bottom
       }
       
-      // Clamp to max speed but maintain minimum speed
-      const speedSq = vel.x*vel.x + vel.y*vel.y + vel.z*vel.z;
-      const maxSq = vel.maxSpeed * vel.maxSpeed;
-      
-      if (speedSq > maxSq) {
-        const s = vel.maxSpeed / Math.sqrt(speedSq);
-        vel.x *= s; vel.y *= s; vel.z *= s;
-      } else if (speedSq < (minSpeed * vel.maxSpeed) * (minSpeed * vel.maxSpeed)) {
-        // Boost speed if too slow
-        const s = (minSpeed * vel.maxSpeed) / Math.sqrt(speedSq);
-        vel.x *= s; vel.y *= s; vel.z *= s;
-      }
+      clampVelocity(vel, { minSpeedFactor: minSpeed });
     });
   }
 }

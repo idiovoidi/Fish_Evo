@@ -3,7 +3,7 @@
  * @param {BABYLON.Scene} scene - The Babylon.js scene
  * @returns {BABYLON.Mesh} The crab mesh template
  */
-function createCrabModel(scene) {
+export function createCrabModel(scene) {
   // Create crab body - flattened box for main shell
   const body = BABYLON.MeshBuilder.CreateBox(
     "crabBody",

@@ -2,6 +2,7 @@ import { FishTag, FoodTag, SharkTag } from '../components/Tags.js';
 import { Health } from '../components/Health.js';
 import { Hunger } from '../components/Hunger.js';
 import { Age } from '../components/Age.js';
+import { logger } from '../../utils/logger.js';
 
 /**
  * Population Stats System - Tracks and logs population statistics
@@ -50,9 +51,8 @@ export class PopulationStatsSystem extends window.ECSY.System {
     const avgHunger = fishCount > 0 ? (totalHunger / fishCount) : 0;
     const avgHealth = fishCount > 0 ? (totalHealth / fishCount) : 0;
     
-    // Log statistics
     const elapsedMinutes = ((time - this.startTime) / 60000).toFixed(1);
-    console.log(`
+    logger.debug(`
 ╔════════════════════════════════════════════════════════════╗
 ║ POPULATION STATS (${elapsedMinutes} min)                              
 ╠════════════════════════════════════════════════════════════╣

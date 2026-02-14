@@ -1,10 +1,15 @@
 /**
  * Manages all UI elements for the simulation, including HUD, inspector, and user interactions.
+ * @param {BABYLON.Scene} scene
+ * @param {import('./Simulation.js').Simulation} simulation
+ * @param {{ Position: object, Renderable: object }} [components] - Injected component types for entity inspection (avoids global lookup).
  */
 export class UIManager {
-  constructor(scene, simulation) {
+  constructor(scene, simulation, components = {}) {
     this.scene = scene;
     this.simulation = simulation;
+    this.PositionComponent = components.Position ?? null;
+    this.RenderableComponent = components.Renderable ?? null;
     this.selectedEntity = null;
     this.isTrackingEntity = false;
     this.highlightMesh = null;
@@ -13,6 +18,10 @@ export class UIManager {
     this.initStyles();
     this.initDOM();
     this.initObservers();
+  }
+
+  _getPositionComponent() {
+    return this.PositionComponent ?? this.simulation?.world?.getComponent?.('Position') ?? null;
   }
 
   /**
@@ -50,7 +59,25 @@ export class UIManager {
 
     this.inspectorElement = document.createElement('div');
     this.inspectorElement.className = 'inspector';
+    this.inspectorElement.innerHTML = `
+      <div class="inspector-header"></div>
+      <div class="inspector-content"></div>
+      <div class="controls inspector-controls">
+        <button type="button" class="btn" data-action="toggleTracking">Track Entity</button>
+        <button type="button" class="btn" data-action="focusOnEntity">Focus Camera</button>
+        <div class="update-rate">Live updates: OFF</div>
+      </div>
+    `;
     document.body.appendChild(this.inspectorElement);
+    this.inspectorContent = this.inspectorElement.querySelector('.inspector-content');
+    this.inspectorControls = this.inspectorElement.querySelector('.inspector-controls');
+    this.inspectorElement.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn[data-action]');
+      if (!btn) return;
+      const action = btn.getAttribute('data-action');
+      if (action === 'toggleTracking') this.toggleTracking();
+      else if (action === 'focusOnEntity') this.focusOnEntity();
+    });
   }
 
   /**
@@ -144,8 +171,7 @@ export class UIManager {
       return;
     }
 
-    let html = `<h3>Entity #${this.selectedEntity.id || ''}</h3>`;
-    
+    let html = '';
     try {
       // Get all component types from the entity
       const componentTypes = this.selectedEntity.getComponentTypes();
@@ -183,20 +209,15 @@ export class UIManager {
       html += `<div class="component"><h4>Error</h4><div class="prop"><span class="prop-key">message:</span> <span class="prop-val">${e?.message || e}</span></div></div>`;
     }
     
-    // Add control buttons
-    html += `
-      <div class="controls">
-        <button class="btn ${this.isTrackingEntity ? 'active' : ''}" onclick="window.uiManager.toggleTracking()">
-          ${this.isTrackingEntity ? 'Stop Tracking' : 'Track Entity'}
-        </button>
-        <button class="btn" onclick="window.uiManager.focusOnEntity()">
-          Focus Camera
-        </button>
-        <div class="update-rate">Live updates: ${this.updateInterval ? 'ON' : 'OFF'}</div>
-      </div>
-    `;
-
-    this.inspectorElement.innerHTML = html;
+    this.inspectorElement.querySelector('.inspector-header').innerHTML = `<h3>Entity #${this.selectedEntity.id ?? ''}</h3>`;
+    this.inspectorContent.innerHTML = html;
+    const trackBtn = this.inspectorControls.querySelector('[data-action="toggleTracking"]');
+    const rateEl = this.inspectorControls.querySelector('.update-rate');
+    if (trackBtn) {
+      trackBtn.textContent = this.isTrackingEntity ? 'Stop Tracking' : 'Track Entity';
+      trackBtn.classList.toggle('active', this.isTrackingEntity);
+    }
+    if (rateEl) rateEl.textContent = `Live updates: ${this.updateInterval ? 'ON' : 'OFF'}`;
   }
   
   /**
@@ -229,15 +250,10 @@ export class UIManager {
    */
   createHighlight() {
     if (!this.selectedEntity) return;
-    
+    const Position = this._getPositionComponent();
+    if (!Position) return;
     try {
-      // Get components directly from world registry
-      const Position = this.simulation.world.getComponent('Position') || window.Position;
-      const Renderable = this.simulation.world.getComponent('Renderable') || window.Renderable;
-      
-      const renderable = this.selectedEntity.getComponent(Renderable);
       const position = this.selectedEntity.getComponent(Position);
-      
       if (!position) return;
       
       // Create highlight outline
@@ -263,8 +279,7 @@ export class UIManager {
           const pulse = 1 + Math.sin(time) * 0.2;
           this.highlightMesh.scaling.setAll(pulse);
           
-          // Update position to follow entity
-          const pos = this.selectedEntity.getComponent(Position);
+          const pos = this.selectedEntity.getComponent(this._getPositionComponent());
           if (pos) {
             this.highlightMesh.position.set(pos.x, pos.y, pos.z);
           }
@@ -325,8 +340,8 @@ export class UIManager {
    */
   focusOnEntity() {
     if (!this.selectedEntity) return;
-    
-    const Position = this.simulation.world.getComponent('Position') || window.Position;
+    const Position = this._getPositionComponent();
+    if (!Position) return;
     const position = this.selectedEntity.getComponent(Position);
     if (!position) return;
     
@@ -353,8 +368,8 @@ export class UIManager {
    */
   updateCameraTracking() {
     if (!this.isTrackingEntity || !this.selectedEntity || !this.selectedEntity.alive) return;
-    
-    const Position = this.simulation.world.getComponent('Position') || window.Position;
+    const Position = this._getPositionComponent();
+    if (!Position) return;
     const position = this.selectedEntity.getComponent(Position);
     if (!position) return;
     
@@ -378,10 +393,5 @@ export class UIManager {
     this.stopContinuousUpdates();
     this.clearHighlight();
     this.stopTracking();
-    
-    // Remove global reference
-    if (window.uiManager === this) {
-      delete window.uiManager;
-    }
   }
 } 
