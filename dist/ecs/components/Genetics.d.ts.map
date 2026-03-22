@@ -1,0 +1,1 @@
+{"version":3,"file":"Genetics.d.ts","sourceRoot":"","sources":["../../../src/ecs/components/Genetics.ts"],"names":[],"mappings":";AAAA,qBAAa,QAAS,SAAQ,aAA8B;IAC1D,IAAI,EAAE,MAAM,CAAK;IACjB,KAAK,EAAE,MAAM,CAAK;IAClB,UAAU,EAAE,MAAM,CAAK;IACvB,KAAK,EAAE,MAAM,EAAE,CAAmB;CACnC"}

@@ -1,0 +1,1 @@
+{"version":3,"file":"PopulationStatsSystem.d.ts","sourceRoot":"","sources":["../../../src/ecs/systems/PopulationStatsSystem.ts"],"names":[],"mappings":";AAMA,qBAAa,qBAAsB,SAAQ,0BAA2B;IACpE,WAAW,EAAE,MAAM,CAAK;IACxB,WAAW,EAAE,MAAM,CAAS;IAC5B,UAAU,EAAE,MAAM,CAAK;IACvB,UAAU,EAAE,MAAM,CAAK;IACvB,SAAS,EAAE,MAAM,CAAK;IAEtB,IAAI;IAQJ,OAAO,CAAC,MAAM,EAAE,MAAM,EAAE,IAAI,EAAE,MAAM;CA6CrC"}

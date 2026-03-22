@@ -1,0 +1,1 @@
+{"version":3,"file":"PredatorState.d.ts","sourceRoot":"","sources":["../../../src/ecs/components/PredatorState.ts"],"names":[],"mappings":";AAAA,qBAAa,aAAc,SAAQ,kBAA8B;IAC/D,YAAY,EAAE,MAAM,CAAK;IACzB,YAAY,EAAE,MAAM,CAAQ;IAC5B,aAAa,EAAE,GAAG,CAAQ;IAC1B,UAAU,EAAE,MAAM,CAAM;IACxB,cAAc,EAAE,MAAM,CAAK;IAC3B,SAAS,EAAE,OAAO,CAAS;CAC5B"}

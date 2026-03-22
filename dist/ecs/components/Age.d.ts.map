@@ -1,0 +1,1 @@
+{"version":3,"file":"Age.d.ts","sourceRoot":"","sources":["../../../src/ecs/components/Age.ts"],"names":[],"mappings":";AAAA,qBAAa,GAAI,SAAQ,QAA8B;IACrD,KAAK,EAAE,MAAM,CAAK;IAClB,WAAW,EAAE,MAAM,CAAM;IACzB,MAAM,EAAE,MAAM,CAAO;IACrB,OAAO,EAAE,OAAO,CAAS;CAC1B"}

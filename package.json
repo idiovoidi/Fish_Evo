@@ -2,13 +2,19 @@
     "name": "yuka-babylon-navigation",
     "version": "1.0.0",
     "description": "A navigation simulation using Yuka and Babylon.js",
-    "main": "app.js",
+    "main": "dist/app.js",
     "scripts": {
-        "start": "npx http-server . -o",
-        "debug": "npx http-server . -p 5502"
+        "build": "tsc",
+        "build:watch": "tsc --watch",
+        "start": "npm run build && npx http-server . -o",
+        "debug": "npm run build && npx http-server . -p 5502"
     },
     "dependencies": {
         "ecsy": "^0.4.3",
         "http-server": "^14.1.1"
+    },
+    "devDependencies": {
+        "@types/node": "^25.5.0",
+        "typescript": "^5.9.3"
     }
 }
