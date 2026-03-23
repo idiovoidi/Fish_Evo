@@ -1,3 +1,8 @@
+import { DayNightCycle } from '../environment/day_night_cycle';
+import { UnderwaterLandscape } from '../environment/landscape';
+import { CoralManager } from '../environment/coral';
+import { DebrisManager } from '../environment/debris';
+import { SeaweedManager } from '../environment/seaweed';
 export class Scene {
     constructor(canvas) {
         this.camera = null;
@@ -74,20 +79,20 @@ export class Scene {
                 defaultPipeline.bloomKernel = SimulationConfig?.graphics?.postProcessing?.bloomKernel || 32;
             }
             console.log("Initializing day/night cycle");
-            this.dayNightCycle = new window.DayNightCycle(this.scene);
+            this.dayNightCycle = new DayNightCycle(this.scene);
             console.log("Creating landscape");
-            this.landscape = new window.UnderwaterLandscape(this.scene);
+            this.landscape = new UnderwaterLandscape(this.scene);
             await this.landscape.setup();
             if (this.landscape.terrain) {
                 this.dayNightCycle.addShadowCaster(this.landscape.terrain);
             }
             console.log("Landscape setup complete");
             console.log("Creating coral reef");
-            this.coralManager = new window.CoralManager(this.scene, this.landscape);
+            this.coralManager = new CoralManager(this.scene, this.landscape);
             console.log("Creating ocean debris");
-            this.debrisManager = new window.DebrisManager(this.scene, this.landscape);
+            this.debrisManager = new DebrisManager(this.scene, this.landscape);
             console.log("Creating seaweed");
-            this.seaweedManager = new window.SeaweedManager(this.scene, this.landscape);
+            this.seaweedManager = new SeaweedManager(this.scene, this.landscape);
             this.seaweedManager.initialize();
             if (this.landscape.waterBox) {
                 const waterMaterial = this.landscape.waterBox.material;

@@ -5,6 +5,7 @@ import { Health } from '../components/Health';
 import { Velocity } from '../components/Velocity';
 import { Renderable } from '../components/Renderable';
 import { FishTag, FoodTag } from '../components/Tags';
+import { SpatialHashSystem } from './SpatialHashSystem';
 import { clampVelocity, distance } from '../../utils/velocity';
 import { logger } from '../../utils/logger';
 const FOOD_DETECTION_RADIUS = 8.0;
@@ -17,7 +18,7 @@ export class FoodConsumptionSystem extends window.ECSY.System {
         this.eatingAnimations = new Map();
     }
     init() {
-        this.spatial = this.world.getSystem('SpatialHashSystem');
+        this.spatial = this.world.getSystem(SpatialHashSystem);
         this.eatingAnimations = new Map();
     }
     execute(delta, time) {

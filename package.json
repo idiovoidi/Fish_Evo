@@ -7,7 +7,9 @@
         "build": "tsc",
         "build:watch": "tsc --watch",
         "start": "npm run build && npx http-server . -o",
-        "debug": "npm run build && npx http-server . -p 5502"
+        "debug": "npm run build && npx http-server . -p 5502",
+        "dev": "vite",
+        "preview": "vite preview"
     },
     "dependencies": {
         "ecsy": "^0.4.3",
@@ -15,6 +17,7 @@
     },
     "devDependencies": {
         "@types/node": "^25.5.0",
-        "typescript": "^5.9.3"
+        "typescript": "^5.9.3",
+        "vite": "^5.4.0"
     }
 }

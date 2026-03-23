@@ -17,7 +17,6 @@
             touch-action: none;
         }
     </style>
-    <!-- Add favicon to prevent 404 error -->
     <link rel="icon" href="data:,">
 </head>
 <body>
@@ -29,86 +28,10 @@
     <script src="https://cdn.babylonjs.com/gui/babylon.gui.min.js"></script>
     <script src="https://cdn.babylonjs.com/recast.js"></script>
     <script src="https://unpkg.com/yuka"></script>
-    <!-- ECSY UMD for window.ECSY used by Simulation/world -->
     <script src="https://unpkg.com/ecsy/build/ecsy.js"></script>
-    <!-- Babylon serializers for optional glTF export -->
     <script src="https://cdn.babylonjs.com/serializers/babylonjs.serializers.min.js"></script>
     
-    <!-- Initialize app only after libraries are loaded -->
-    <script>
-        async function loadScripts() {
-            try {
-                // Wait for libraries to load with timeout
-                await new Promise((resolve, reject) => {
-                    let attempts = 0;
-                    const maxAttempts = 50; // 5 seconds maximum wait
-                    
-                    const checkLibraries = () => {
-                        attempts++;
-                        if (typeof BABYLON !== 'undefined' && 
-                            typeof Recast !== 'undefined' && 
-                            typeof YUKA !== 'undefined') {
-                            console.log("All libraries loaded successfully");
-                            resolve();
-                        } else if (attempts >= maxAttempts) {
-                            reject(new Error("Timeout waiting for libraries to load"));
-                        } else {
-                            setTimeout(checkLibraries, 100);
-                        }
-                    };
-                    checkLibraries();
-                });
-
-                console.log("Loading application scripts...");
-                
-                // Load application scripts in order (legacy gameplay scripts removed; ECS will handle logic)
-                // Model scripts (fish, food, shark, crab) are loaded as ESM by BabylonMeshSystem
-                const scripts = [
-                    'core/Camera.js',
-                    'config/simulation_config.js',
-                    'Day-Night_Cycle.js',
-                    'crab.js',
-                    'landscape.js',
-                    'coral.js',
-                    'ocean_debris.js',
-                    'seaweed.js',
-                    'core/Scene.js'
-                ];
-
-                for (const script of scripts) {
-                    try {
-                        await new Promise((resolve, reject) => {
-                            const scriptElement = document.createElement('script');
-                            scriptElement.src = script;
-                            scriptElement.onload = () => {
-                                console.log(`Loaded ${script}`);
-                                resolve();
-                            };
-                            scriptElement.onerror = (error) => {
-                                reject(new Error(`Failed to load ${script}: ${error.message}`));
-                            };
-                            document.body.appendChild(scriptElement);
-                        });
-                    } catch (error) {
-                        console.error(`Error loading ${script}:`, error);
-                        throw error; // Stop loading if any script fails
-                    }
-                }
-                
-                console.log("All scripts loaded successfully");
-
-                // Start ECS after scene is initialized by loading module bootstrap
-                const moduleScript = document.createElement('script');
-                moduleScript.type = 'module';
-                moduleScript.src = 'core/start-ecs.js';
-                document.body.appendChild(moduleScript);
-            } catch (error) {
-                console.error('Error during script loading:', error);
-                alert(`Failed to load required scripts: ${error.message}\nPlease refresh the page.`);
-            }
-        }
-
-        loadScripts();
-    </script>
+    <!-- Main app entry - Vite handles module resolution -->
+    <script type="module" src="/src/main.ts"></script>
 </body>
-</html> 
+</html>

@@ -5,12 +5,13 @@ import { Behavior } from '../components/Behavior';
 import { Genetics } from '../components/Genetics';
 import { SharkTag, FishTag } from '../components/Tags';
 import { Health } from '../components/Health';
+import { SpatialHashSystem } from './SpatialHashSystem';
 
 export class SharkSystem extends (window as any).ECSY.System {
   spatial: any;
 
   init() {
-    this.spatial = this.world.getSystem('SpatialHashSystem');
+    this.spatial = this.world.getSystem(SpatialHashSystem);
   }
 
   execute(delta: number, time: number) {

@@ -4,6 +4,7 @@ import { Behavior } from '../components/Behavior';
 import { Hunger } from '../components/Hunger';
 import { FishTag } from '../components/Tags';
 import { clampVelocity } from '../../utils/velocity';
+import { SpatialHashSystem } from './SpatialHashSystem';
 export class SchoolingSystem extends window.ECSY.System {
     constructor() {
         super(...arguments);
@@ -13,7 +14,7 @@ export class SchoolingSystem extends window.ECSY.System {
         this.alignmentRadius = 4;
     }
     init() {
-        this.spatial = this.world.getSystem('SpatialHashSystem');
+        this.spatial = this.world.getSystem(SpatialHashSystem);
         this.neighborRadius = 8;
         this.separationDistance = 2.5;
         this.cohesionRadius = 6;

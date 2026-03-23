@@ -26,7 +26,7 @@ export class FoodConsumptionSystem extends (window as any).ECSY.System {
   eatingAnimations: Map<any, AnimationData> = new Map();
 
   init() {
-    this.spatial = this.world.getSystem('SpatialHashSystem');
+    this.spatial = this.world.getSystem(SpatialHashSystem);
     this.eatingAnimations = new Map();
   }
 

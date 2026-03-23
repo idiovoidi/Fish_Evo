@@ -1,4 +1,4 @@
-import { UIManager } from './UIManager';
+import { UIManager } from './UIManager.js';
 export declare class Simulation {
     world: any;
     running: boolean;
