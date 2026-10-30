@@ -1,3 +1,4 @@
+import { ECSY } from '../ecsy';
 import { Position } from '../components/Position';
 import { Velocity } from '../components/Velocity';
 import { Behavior } from '../components/Behavior';
@@ -5,36 +6,24 @@ import { Hunger } from '../components/Hunger';
 import { Health } from '../components/Health';
 import { Genetics } from '../components/Genetics';
 import { Age } from '../components/Age';
+import { Effects } from '../components/Effects';
 import { Renderable } from '../components/Renderable';
 import { FishTag } from '../components/Tags';
 import { FishFactory } from '../entities/FishFactory';
 import { logger } from '../../utils/logger';
 
 const BREED_DISTANCE = 4;
-const MUTATION_RATE = 0.08;
-const MUTATION_VARIATION = 0.15;
+const MAX_FISH = 100;
+const TRAIT_LIMITS = { size: [0.55, 2.2], speed: [2.5, 12], metabolism: [0.5, 1.8] } as const;
 const BREED_DISTANCE_SQ = BREED_DISTANCE * BREED_DISTANCE;
 const MIN_HEALTH_TO_BREED = 60;
-const MAX_HUNGER_TO_BREED = 0.3;
+const MAX_HUNGER_TO_BREED = 0.4;
 
-interface AnimationData {
-  startTime: number;
-  duration: number;
-  originalScale: any;
-  originalRotation: any;
-  fish: any;
-}
-
-export class BreedingSystem extends (window as any).ECSY.System {
-  breedingAnimations: Map<any, AnimationData> = new Map();
-
-  init() {
-    this.breedingAnimations = new Map();
-  }
-  
+export class BreedingSystem extends ECSY.System {
   execute(delta: number, time: number) {
     const candidates = this.queries.fish.results;
     const n = candidates.length;
+    if (n >= MAX_FISH) return;
     
     for (let i = 0; i < n; i++) {
       const e1 = candidates[i];
@@ -47,7 +36,7 @@ export class BreedingSystem extends (window as any).ECSY.System {
       if (!age1.isAdult || 
           time - beh1.lastBreedTime < beh1.breedCooldown || 
           hunger1.value > MAX_HUNGER_TO_BREED ||
-          (health1 && health1.current < MIN_HEALTH_TO_BREED)) {
+          (health1 && (health1.isDead || health1.current < MIN_HEALTH_TO_BREED))) {
         continue;
       }
       
@@ -64,7 +53,7 @@ export class BreedingSystem extends (window as any).ECSY.System {
         if (!age2.isAdult || 
             time - beh2.lastBreedTime < beh2.breedCooldown || 
             hunger2.value > MAX_HUNGER_TO_BREED ||
-            (health2 && health2.current < MIN_HEALTH_TO_BREED)) {
+            (health2 && (health2.isDead || health2.current < MIN_HEALTH_TO_BREED))) {
           continue;
         }
         
@@ -84,31 +73,37 @@ export class BreedingSystem extends (window as any).ECSY.System {
         hunger1Mut.value = Math.min(1.0, hunger1Mut.value + 0.15);
         hunger2Mut.value = Math.min(1.0, hunger2Mut.value + 0.15);
         
-        this.startBreedingAnimation(e1, time);
-        this.startBreedingAnimation(e2, time);
+        for (const parent of [e1, e2]) {
+          const fx = parent.getMutableComponent(Effects);
+          if (fx) { fx.pulse = 1; fx.flash = 1; }
+        }
         
         logger.debug(`Fish breeding successful! Offspring traits: size=${offspring.getComponent(Genetics).size.toFixed(2)}, speed=${offspring.getComponent(Genetics).speed.toFixed(2)}`);
         break;
       }
     }
-    
-    this.updateBreedingAnimations(delta / 1000);
   }
 
   createOffspring(parentA: any, parentB: any) {
     const gA = parentA.getComponent(Genetics);
     const gB = parentB.getComponent(Genetics);
     const childTraits: any = {};
-    
-    ['size','speed','metabolism'].forEach((trait: string) => {
-      const avg = (gA[trait] + gB[trait]) / 2;
-      childTraits[trait] = this.mutateValue(avg);
+
+    (['size', 'speed', 'metabolism'] as const).forEach((trait) => {
+      const [lo, hi] = TRAIT_LIMITS[trait];
+      // Each trait is inherited from a blend of the parents, then perturbed.
+      const mix = Math.random();
+      const inherited = gA[trait] * mix + gB[trait] * (1 - mix);
+      childTraits[trait] = Math.min(hi, Math.max(lo, this.mutate(inherited)));
     });
-    
-    const colorAvg = [0,1,2].map((i: number) => Math.round((gA.color[i] + gB.color[i]) / 2));
-    const colorMut = colorAvg.map((c: number) => this.mutateValue(c/255) * 255).map((v: number) => Math.min(255, Math.max(0, Math.round(v))));
-    childTraits.color = colorMut;
-    
+
+    const mix = Math.random();
+    childTraits.color = [0, 1, 2].map((i) => {
+      const blended = (gA.color[i] * mix + gB.color[i] * (1 - mix)) / 255;
+      return Math.min(255, Math.max(0, Math.round(this.mutate(blended, 0.05) * 255)));
+    });
+    childTraits.generation = Math.max(gA.generation, gB.generation) + 1;
+
     const posA = parentA.getComponent(Position);
     const posB = parentB.getComponent(Position);
     const childPos = {
@@ -116,66 +111,17 @@ export class BreedingSystem extends (window as any).ECSY.System {
       y: (posA.y + posB.y) / 2 + (Math.random() - 0.5) * 1,
       z: (posA.z + posB.z) / 2 + (Math.random() - 0.5) * 2
     };
-    
-    const offspring = FishFactory.create(this.world, {
-      position: childPos,
-      genetics: childTraits
-    });
-    
-    logger.debug(`Offspring created with traits: size=${childTraits.size.toFixed(2)}, speed=${childTraits.speed.toFixed(2)}, metabolism=${childTraits.metabolism.toFixed(2)}`);
+
+    const offspring = FishFactory.create(this.world, { position: childPos, genetics: childTraits });
+    logger.debug(`Offspring gen ${childTraits.generation}: size=${childTraits.size.toFixed(2)}, speed=${childTraits.speed.toFixed(2)}, metabolism=${childTraits.metabolism.toFixed(2)}`);
     return offspring;
   }
 
-  mutateValue(val: number): number {
-    if (Math.random() < MUTATION_RATE) {
-      const change = 1 + (Math.random() * 2 - 1) * MUTATION_VARIATION;
-      return val * change;
-    }
-    return val;
-  }
-  
-  startBreedingAnimation(fish: any, time: number) {
-    const renderable = fish.getComponent(Renderable);
-    if (!renderable || !renderable.model) return;
-    
-    this.breedingAnimations.set(fish, {
-      startTime: time,
-      duration: 1000,
-      originalScale: renderable.model.scaling.clone(),
-      originalRotation: renderable.model.rotation.clone(),
-      fish: fish
-    });
-  }
-  
-  updateBreedingAnimations(_deltaTime: number) {
-    const currentTime = performance.now();
-    
-    this.breedingAnimations.forEach((animation, fish) => {
-      const elapsed = currentTime - animation.startTime;
-      const progress = Math.min(elapsed / animation.duration, 1.0);
-      
-      if (progress >= 1.0) {
-        const renderable = fish.getComponent(Renderable);
-        if (renderable && renderable.model) {
-          renderable.model.scaling.copyFrom(animation.originalScale);
-          renderable.model.rotation.copyFrom(animation.originalRotation);
-        }
-        this.breedingAnimations.delete(fish);
-      } else {
-        const renderable = fish.getComponent(Renderable);
-        if (renderable && renderable.model) {
-          const pulsePhase = progress * Math.PI * 4;
-          const scaleMultiplier = 1.0 + Math.sin(pulsePhase) * 0.15;
-          
-          renderable.model.scaling.x = animation.originalScale.x * scaleMultiplier;
-          renderable.model.scaling.y = animation.originalScale.y * scaleMultiplier;
-          renderable.model.scaling.z = animation.originalScale.z * scaleMultiplier;
-          
-          const spinPhase = progress * Math.PI * 2;
-          renderable.model.rotation.y = animation.originalRotation.y + Math.sin(spinPhase) * 0.3;
-        }
-      }
-    });
+  /** Small drift every time, with the occasional larger leap. */
+  mutate(value: number, scale = 1): number {
+    const sigma = (Math.random() < 0.12 ? 0.14 : 0.035) * scale;
+    const gaussian = (Math.random() + Math.random() + Math.random() - 1.5) * 1.15;
+    return value * (1 + gaussian * sigma * 2);
   }
 }
 

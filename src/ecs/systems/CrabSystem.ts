@@ -1,9 +1,10 @@
+import { ECSY } from '../ecsy';
 import { Position } from '../components/Position';
 import { Velocity } from '../components/Velocity';
 import { Behavior } from '../components/Behavior';
 import { CrabTag } from '../components/Tags';
 
-export class CrabSystem extends (window as any).ECSY.System {
+export class CrabSystem extends ECSY.System {
   execute(delta: number, time: number) {
     const dt = delta / 1000;
     
@@ -27,12 +28,6 @@ export class CrabSystem extends (window as any).ECSY.System {
           velocity.z = 0;
           return;
         }
-      }
-      
-      if (typeof window !== 'undefined' && (window as any).landscape) {
-        const terrainHeight = (window as any).landscape.getHeightAtPoint(position.x, position.z);
-        const targetY = terrainHeight + ((window as any).SimulationConfig?.entities?.crabs?.spawnHeight || 0.1);
-        position.y = targetY;
       }
       
       const wanderStrength = 1.0;

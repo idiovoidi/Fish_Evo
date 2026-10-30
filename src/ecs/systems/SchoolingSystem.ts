@@ -1,3 +1,4 @@
+import { ECSY } from '../ecsy';
 import { Position } from '../components/Position';
 import { Velocity } from '../components/Velocity';
 import { Behavior } from '../components/Behavior';
@@ -6,7 +7,7 @@ import { FishTag } from '../components/Tags';
 import { clampVelocity } from '../../utils/velocity';
 import { SpatialHashSystem } from './SpatialHashSystem';
 
-export class SchoolingSystem extends (window as any).ECSY.System {
+export class SchoolingSystem extends ECSY.System {
   spatial: any;
   neighborRadius: number = 8;
   separationDistance: number = 2.5;

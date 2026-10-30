@@ -9,7 +9,4 @@ logs
 
 # Build output
 dist/
-
-# Old JS files (now in src/ as TypeScript)
-*.js
-!*.config.js
+build/

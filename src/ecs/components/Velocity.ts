@@ -1,4 +1,5 @@
-export class Velocity extends (window as any).ECSY.Component {
+import { ECSY } from '../ecsy';
+export class Velocity extends ECSY.Component {
   x: number = 0;
   y: number = 0;
   z: number = 0;
@@ -6,8 +7,8 @@ export class Velocity extends (window as any).ECSY.Component {
 }
 
 (Velocity as any).schema = {
-  x: { type: (window as any).ECSY.Types.Number, default: 0 },
-  y: { type: (window as any).ECSY.Types.Number, default: 0 },
-  z: { type: (window as any).ECSY.Types.Number, default: 0 },
-  maxSpeed: { type: (window as any).ECSY.Types.Number, default: 5 }
+  x: { type: ECSY.Types.Number, default: 0 },
+  y: { type: ECSY.Types.Number, default: 0 },
+  z: { type: ECSY.Types.Number, default: 0 },
+  maxSpeed: { type: ECSY.Types.Number, default: 5 }
 };

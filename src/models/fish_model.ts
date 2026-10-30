@@ -1,84 +1,81 @@
-export function createFishModel(scene: any): any {
-  const BABYLON = (window as any).BABYLON;
-  
-  const body = BABYLON.MeshBuilder.CreateCapsule(
-    "fishBody",
-    { radius: 0.25, height: 1.2, tessellation: 16 },
-    scene
-  );
+import { Mesh, Scene } from '@babylonjs/core';
+import { GeometryBuilder, Paint, Vec3 } from '../render/geometry';
 
-  const tail = BABYLON.MeshBuilder.CreateCylinder(
-    "fishTail",
-    { diameterTop: 0.45, diameterBottom: 0.05, height: 0.5, tessellation: 12 },
-    scene
-  );
-  tail.rotation.x = Math.PI / 2;
-  tail.position.z = -0.85;
+const BODY: Paint = () => [0, 0, 0, 1];
+const FIN: Paint = (_x, _y, z) => [1, 0, 0, Math.min(1, Math.max(0, (-z - 0.7) * 2))];
+const EYE: Paint = () => [0, 1, 0, 1];
 
-  const dorsalFin = BABYLON.MeshBuilder.CreateCylinder(
-    "dorsalFin",
-    { diameterTop: 0.05, diameterBottom: 0.25, height: 0.4, tessellation: 8 },
-    scene
-  );
-  dorsalFin.position.set(0, 0.25, -0.1);
-  dorsalFin.rotation.z = -0.1;
+/** Half-height of the body at normalised position t (0 = nose, 1 = tail root). */
+function halfHeight(t: number): number {
+  const s = Math.pow(Math.sin(Math.PI * Math.pow(t, 0.62)), 0.7);
+  return 0.4 * s + 0.07 * t;
+}
 
-  const finL = BABYLON.MeshBuilder.CreateCylinder(
-    "fishFinL",
-    { diameterTop: 0.08, diameterBottom: 0.3, height: 0.35, tessellation: 10 },
-    scene
-  );
-  finL.rotation.z = -Math.PI / 3;
-  finL.rotation.x = Math.PI / 2;
-  finL.position.set(0.3, -0.05, 0.1);
+const NOSE_Z = 1.0;
+const TAIL_Z = -0.75;
+const zAt = (t: number) => NOSE_Z + (TAIL_Z - NOSE_Z) * t;
 
-  const finR = finL.clone("fishFinR");
-  finR.rotation.z = Math.PI / 3;
-  finR.position.x = -0.3;
+/**
+ * Builds the fish template, facing +Z, roughly 2 units long. Every vertex
+ * carries a `swim` weight so the vertex shader can ripple the tail.
+ */
+export function createFishMesh(scene: Scene): Mesh {
+  // Weight rises from 0 at mid-body to 1 at the tail root and beyond on the fin.
+  const g = new GeometryBuilder((z) => Math.min(1.4, Math.max(0, (0.15 - z) / 1.0)));
 
-  const pelvicFinL = BABYLON.MeshBuilder.CreateCylinder(
-    "pelvicFinL",
-    { diameterTop: 0.05, diameterBottom: 0.15, height: 0.2, tessellation: 8 },
-    scene
-  );
-  pelvicFinL.rotation.z = -Math.PI / 6;
-  pelvicFinL.rotation.x = Math.PI / 2;
-  pelvicFinL.position.set(0.15, -0.15, -0.2);
+  const stations = Array.from({ length: 25 }, (_, i) => {
+    const t = i / 24;
+    const h = halfHeight(t);
+    return { z: zAt(t), h, w: h * 0.58 };
+  });
+  g.loft(stations, 14, 0.86, BODY);
 
-  const pelvicFinR = pelvicFinL.clone("pelvicFinR");
-  pelvicFinR.rotation.z = Math.PI / 6;
-  pelvicFinR.position.x = -0.15;
+  const topAt = (z: number) => halfHeight((NOSE_Z - z) / (NOSE_Z - TAIL_Z));
 
-  const eyeL = BABYLON.MeshBuilder.CreateSphere(
-    "eyeL",
-    { diameter: 0.08, segments: 8 },
-    scene
-  );
-  eyeL.position.set(0.15, 0.1, 0.5);
+  // Forked tail.
+  const tail: Vec3[] = [
+    [0, 0.08, TAIL_Z + 0.04],
+    [0, 0.24, -0.98],
+    [0, 0.5, -1.25],
+    [0, 0.1, -1.04],
+    [0, -0.1, -1.04],
+    [0, -0.5, -1.25],
+    [0, -0.24, -0.98],
+    [0, -0.08, TAIL_Z + 0.04]
+  ];
+  g.fin(tail, FIN);
 
-  const eyeR = eyeL.clone("eyeR");
-  eyeR.position.x = -0.15;
+  // Dorsal fin.
+  const dTop = (z: number) => topAt(z) - 0.03;
+  g.fin([
+    [0, dTop(0.42), 0.42],
+    [0, dTop(0.2) + 0.26, 0.2],
+    [0, dTop(-0.1) + 0.42, -0.12],
+    [0, dTop(-0.35) + 0.16, -0.38],
+    [0, dTop(-0.5), -0.5]
+  ], FIN);
 
-  const fishMesh = BABYLON.Mesh.MergeMeshes(
-    [body, tail, dorsalFin, finL, finR, pelvicFinL, pelvicFinR, eyeL, eyeR],
-    true,
-    true,
-    undefined,
-    false,
-    true
-  );
-  fishMesh.name = "fishPrimitiveTemplate";
+  // Anal fin.
+  g.fin([
+    [0, -topAt(-0.28) * 0.86 + 0.03, -0.28],
+    [0, -topAt(-0.4) * 0.86 - 0.2, -0.46],
+    [0, -topAt(-0.55) * 0.86 + 0.03, -0.58]
+  ], FIN);
 
-  const fishMaterial = new BABYLON.PBRMaterial("fishMaterial", scene);
-  fishMaterial.albedoColor = new BABYLON.Color3(0.4, 0.7, 0.9);
-  fishMaterial.metallic = 0.3;
-  fishMaterial.roughness = 0.5;
-  fishMaterial.environmentIntensity = 0.3;
+  // Pectoral fins.
+  for (const side of [1, -1]) {
+    g.fin([
+      [side * 0.2, -0.04, 0.42],
+      [side * 0.2, -0.13, 0.26],
+      [side * 0.52, -0.24, 0.12],
+      [side * 0.42, -0.1, 0.34]
+    ], FIN);
+  }
 
-  fishMesh.material = fishMaterial;
-  fishMesh.setEnabled(false);
+  // Eyes.
+  for (const side of [1, -1]) g.sphere(side * 0.185, 0.1, 0.7, 0.07, EYE);
 
-  console.log("Enhanced fish primitive template created successfully");
-
-  return fishMesh;
+  const mesh = g.build(scene, 'fishTemplate');
+  mesh.isPickable = true;
+  return mesh;
 }

@@ -7,6 +7,7 @@ import { Age } from '../components/Age';
 import { Behavior } from '../components/Behavior';
 import { SharkTag } from '../components/Tags';
 import { PredatorState } from '../components/PredatorState';
+import { Effects } from '../components/Effects';
 
 interface SharkOptions {
   position?: { x?: number; y?: number; z?: number };
@@ -22,7 +23,7 @@ interface SharkOptions {
 export class SharkFactory {
   static create(world: any, options: SharkOptions = {}) {
     const genetics = {
-      size: 2.5 + Math.random() * 1.5,
+      size: 1.9 + Math.random() * 0.7,
       speed: 8 + Math.random() * 6,
       metabolism: 0.3 + Math.random() * 0.3,
       color: [
@@ -60,7 +61,7 @@ export class SharkFactory {
       age: {
         value: 0,
         maturityAge: 180,
-        maxAge: 1200,
+        maxAge: 1e7,
         ...options.age
       },
       behavior: {
@@ -99,6 +100,7 @@ export class SharkFactory {
       .addComponent(Renderable, config.renderable)
       .addComponent(PredatorState, config.predatorState)
       .addComponent(Genetics, config.genetics)
+      .addComponent(Effects)
       .addComponent(SharkTag);
       
     return shark;

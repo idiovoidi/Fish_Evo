@@ -1,4 +1,5 @@
-export class TagComponent extends (window as any).ECSY.Component {}
+import { ECSY } from '../ecsy';
+export class TagComponent extends ECSY.Component {}
 
 export class FishTag extends TagComponent {}
 export class SharkTag extends TagComponent {}

@@ -1,45 +1,4 @@
-interface EntityConfig {
-  count: number;
-  spawnHeight: number;
-  maxSpeed: number;
-  maxForce: number;
-  neighborhoodRadius: number;
-  waitDurationRange?: { min: number; max: number };
-  updateInterval: number;
-  schoolingDistance?: number;
-}
-
-interface FoodConfig {
-  maxParticles: number;
-  spawnInterval: number;
-  daySpawnRate: number;
-  nightSpawnRate: number;
-  lifetime: {
-    min: number;
-    max: number;
-  };
-}
-
-interface GraphicsConfig {
-  shadows: {
-    enabled: boolean;
-    resolution: number;
-    updateInterval: number;
-  };
-  postProcessing: {
-    bloomEnabled: boolean;
-    bloomKernel: number;
-    chromaticAberration: {
-      enabled: boolean;
-    };
-  };
-  fog: {
-    dayDensity: number;
-    nightDensity: number;
-  };
-}
-
-interface WorldBounds {
+export interface WorldBounds {
   minX: number;
   maxX: number;
   minY: number;
@@ -48,71 +7,39 @@ interface WorldBounds {
   maxZ: number;
 }
 
-interface SimulationConfigType {
+export interface SimulationConfigType {
   entities: {
-    crabs: EntityConfig;
-    fish: EntityConfig;
+    fish: { schools: number; perSchool: number };
+    sharks: { count: number };
+    crabs: { count: number; maxSpeed: number; spawnHeight: number };
   };
-  food: FoodConfig;
-  graphics: GraphicsConfig;
+  food: {
+    maxPellets: number;
+    /** Milliseconds between spawn attempts at midday. */
+    spawnInterval: number;
+    /** Seconds a pellet lingers on the seabed before dissolving. */
+    lifetime: number;
+  };
   world: {
     bounds: WorldBounds;
   };
+  /** Longest slice (ms) fed to the ECS in one step; larger frames are sub-stepped. */
+  maxStepMs: number;
   debug: {
-    showNavMesh: boolean;
-    logSpawnPositions: boolean;
-    showFPS: boolean;
+    logging: boolean;
   };
 }
 
-const SimulationConfig: SimulationConfigType = {
+export const SimulationConfig: SimulationConfigType = {
   entities: {
-    crabs: {
-      count: 8,
-      spawnHeight: 0.1,
-      maxSpeed: 2,
-      maxForce: 0.5,
-      neighborhoodRadius: 5,
-      waitDurationRange: { min: 3, max: 5 },
-      updateInterval: 2
-    },
-    fish: {
-      count: 30,
-      spawnHeight: 5,
-      maxSpeed: 8,
-      maxForce: 1,
-      neighborhoodRadius: 5,
-      schoolingDistance: 2,
-      updateInterval: 2
-    }
+    fish: { schools: 6, perSchool: 6 },
+    sharks: { count: 1 },
+    crabs: { count: 10, maxSpeed: 2, spawnHeight: 0.15 }
   },
   food: {
-    maxParticles: 25,
-    spawnInterval: 2000,
-    daySpawnRate: 10,
-    nightSpawnRate: 3,
-    lifetime: {
-      min: 25000,
-      max: 40000
-    }
-  },
-  graphics: {
-    shadows: {
-      enabled: true,
-      resolution: 1024,
-      updateInterval: 5
-    },
-    postProcessing: {
-      bloomEnabled: true,
-      bloomKernel: 32,
-      chromaticAberration: {
-        enabled: false
-      }
-    },
-    fog: {
-      dayDensity: 0.02,
-      nightDensity: 0.03
-    }
+    maxPellets: 30,
+    spawnInterval: 1400,
+    lifetime: 45
   },
   world: {
     bounds: {
@@ -121,16 +48,13 @@ const SimulationConfig: SimulationConfigType = {
       minZ: -50, maxZ: 50
     }
   },
+  maxStepMs: 50,
   debug: {
-    showNavMesh: false,
-    logSpawnPositions: false,
-    showFPS: true
+    logging: false
   }
 };
 
+// Exposed for tweaking from the browser console.
 if (typeof window !== 'undefined') {
-  (window as any).SimulationConfig = (window as any).SimulationConfig || SimulationConfig;
+  (window as any).SimulationConfig = SimulationConfig;
 }
-
-export { SimulationConfig };
-export type { SimulationConfigType, EntityConfig, FoodConfig, GraphicsConfig, WorldBounds };

@@ -1,55 +1,48 @@
+import { ECSY } from '../ecsy';
 import { FoodFactory } from '../entities/FoodFactory';
 import { FoodTag } from '../components/Tags';
-import { withErrorHandler } from '../../utils/errorHandling';
+import { Lifespan } from '../components/Lifespan';
+import { Renderable } from '../components/Renderable';
+import { SimulationConfig } from '../../config/simulation_config';
 
-export class FoodSpawnerSystem extends (window as any).ECSY.System {
-  lastSpawnTime: number = 0;
-  spawnInterval: number = 1000;
-  spawnMinCount: number = 1;
-  spawnMaxCount: number = 3;
-  maxFoodCount: number = 50;
+/** Drops pellets from the surface and dissolves the ones nobody eats. */
+export class FoodSpawnerSystem extends ECSY.System {
+  lastSpawnTime = 0;
+  spawnInterval = SimulationConfig.food.spawnInterval;
+  maxFoodCount = SimulationConfig.food.maxPellets;
+  /** 0..1; the day/night cycle thins the supply after dark. */
+  daylight = 1;
+  enabled = true;
 
-  init() {
-    this.lastSpawnTime = 0;
-    this.spawnInterval = 1000;
-    this.spawnMinCount = 1;
-    this.spawnMaxCount = 3;
-    this.maxFoodCount = 50;
-    
-    (this as any).spawnFood = withErrorHandler(this.spawnFood.bind(this), 'FoodSpawnerSystem.spawnFood');
-  }
-  
-  updateConfig(params: any = {}) {
-    this.spawnInterval = params.spawnInterval || this.spawnInterval;
-    this.spawnMinCount = params.spawnMinCount || this.spawnMinCount;
-    this.spawnMaxCount = params.spawnMaxCount || this.spawnMaxCount;
-    this.maxFoodCount = params.maxFoodCount || this.maxFoodCount;
-  }
-  
-  execute(_delta: number, time: number) {
-    if (time - this.lastSpawnTime > this.spawnInterval) {
-      this.lastSpawnTime = time;
-      
-      const currentFoodCount = this.queries.food.results.length;
-      
-      if (currentFoodCount < this.maxFoodCount) {
-        const spawnCount = Math.min(
-          this.maxFoodCount - currentFoodCount,
-          this.spawnMinCount + Math.floor(Math.random() * (this.spawnMaxCount - this.spawnMinCount + 1))
-        );
-        
-        for (let i = 0; i < spawnCount; i++) {
-          (this as any).spawnFood();
-        }
+  execute(delta: number, time: number) {
+    const dt = delta / 1000;
+
+    this.queries.food.results.forEach((food: any) => {
+      const life = food.getMutableComponent(Lifespan);
+      life.age += dt;
+      if (life.age >= life.max) {
+        food.remove();
+        return;
       }
+      // Shrink away over the final few seconds.
+      const remaining = life.max - life.age;
+      if (remaining < 4) {
+        const r = food.getComponent(Renderable);
+        if (r?.model) r.model.scaling.setAll(r.scale * Math.max(0.05, remaining / 4));
+      }
+    });
+
+    // Fewer pellets drift down at night.
+    const interval = this.spawnInterval / (0.35 + 0.65 * this.daylight);
+    if (this.enabled && time - this.lastSpawnTime > interval) {
+      this.lastSpawnTime = time;
+      const missing = this.maxFoodCount - this.queries.food.results.length;
+      const count = Math.min(missing, 1 + Math.floor(Math.random() * 3));
+      for (let i = 0; i < count; i++) FoodFactory.create(this.world);
     }
-  }
-  
-  spawnFood() {
-    FoodFactory.create(this.world);
   }
 }
 
 (FoodSpawnerSystem as any).queries = {
-  food: { components: [FoodTag] }
+  food: { components: [FoodTag, Lifespan] }
 };

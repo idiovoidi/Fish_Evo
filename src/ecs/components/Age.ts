@@ -1,4 +1,5 @@
-export class Age extends (window as any).ECSY.Component {
+import { ECSY } from '../ecsy';
+export class Age extends ECSY.Component {
   value: number = 0;
   maturityAge: number = 60;
   maxAge: number = 300;
@@ -6,8 +7,8 @@ export class Age extends (window as any).ECSY.Component {
 }
 
 (Age as any).schema = {
-  value: { type: (window as any).ECSY.Types.Number, default: 0 },
-  maturityAge: { type: (window as any).ECSY.Types.Number, default: 60 },
-  maxAge: { type: (window as any).ECSY.Types.Number, default: 300 },
-  isAdult: { type: (window as any).ECSY.Types.Boolean, default: false }
+  value: { type: ECSY.Types.Number, default: 0 },
+  maturityAge: { type: ECSY.Types.Number, default: 60 },
+  maxAge: { type: ECSY.Types.Number, default: 300 },
+  isAdult: { type: ECSY.Types.Boolean, default: false }
 };

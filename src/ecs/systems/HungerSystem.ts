@@ -1,10 +1,11 @@
+import { ECSY } from '../ecsy';
 import { Hunger } from '../components/Hunger';
 import { Behavior } from '../components/Behavior';
 import { Health } from '../components/Health';
 import { Genetics } from '../components/Genetics';
 import { logger } from '../../utils/logger';
 
-export class HungerSystem extends (window as any).ECSY.System {
+export class HungerSystem extends ECSY.System {
   execute(delta: number, _time: number) {
     const deltaTime = delta / 1000;
     
@@ -14,7 +15,9 @@ export class HungerSystem extends (window as any).ECSY.System {
       const genetics = entity.getComponent(Genetics);
       const metabolismRate = genetics ? genetics.metabolism : 1.0;
       
-      const baseHungerRate = hunger.rate * metabolismRate;
+      // Fast swimmers burn more energy.
+      const speedCost = genetics ? 0.75 + 0.25 * (genetics.speed / 6) : 1;
+      const baseHungerRate = hunger.rate * metabolismRate * speedCost;
       hunger.value = Math.min(1.0, hunger.value + baseHungerRate * deltaTime);
       
       if (entity.hasComponent(Behavior)) {
@@ -27,11 +30,12 @@ export class HungerSystem extends (window as any).ECSY.System {
           
           if (!health.isDead) {
             const hungerSeverity = Math.max(0, hunger.value - 0.7) / 0.3;
-            const starvationDamage = 3 * Math.pow(hungerSeverity, 2) * metabolismRate * deltaTime;
+            const starvationDamage = 1.6 * Math.pow(hungerSeverity, 2) * metabolismRate * deltaTime;
             health.current = Math.max(0, health.current - starvationDamage);
             
             if (health.current <= 0) {
               health.isDead = true;
+              health.cause = 'starvation';
               health.current = 0;
               logger.debug(`Entity ${entity.id} died from starvation (hunger: ${hunger.value.toFixed(2)})`);
             }

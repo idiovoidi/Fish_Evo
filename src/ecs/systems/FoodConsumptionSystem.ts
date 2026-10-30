@@ -1,33 +1,25 @@
+import { ECSY } from '../ecsy';
 import { Position } from '../components/Position';
 import { Hunger } from '../components/Hunger';
 import { Behavior } from '../components/Behavior';
 import { Health } from '../components/Health';
 import { Velocity } from '../components/Velocity';
-import { Renderable } from '../components/Renderable';
+import { Effects } from '../components/Effects';
 import { FishTag, FoodTag } from '../components/Tags';
 import { SpatialHashSystem } from './SpatialHashSystem';
 import { clampVelocity, distance } from '../../utils/velocity';
 import { logger } from '../../utils/logger';
 
-const FOOD_DETECTION_RADIUS = 8.0;
-const FOOD_CONSUMPTION_RADIUS = 1.5;
+const FOOD_DETECTION_RADIUS = 9.0;
+const FOOD_CONSUMPTION_RADIUS = 2.2;
 const FOOD_ENERGY_VALUE = 0.4;
 const FOOD_SEEK_MULTIPLIER = 3.5;
 
-interface AnimationData {
-  startTime: number;
-  duration: number;
-  originalScale: any;
-  fish: any;
-}
-
-export class FoodConsumptionSystem extends (window as any).ECSY.System {
+export class FoodConsumptionSystem extends ECSY.System {
   spatial: any;
-  eatingAnimations: Map<any, AnimationData> = new Map();
 
   init() {
     this.spatial = this.world.getSystem(SpatialHashSystem);
-    this.eatingAnimations = new Map();
   }
 
   execute(delta: number, time: number) {
@@ -42,7 +34,7 @@ export class FoodConsumptionSystem extends (window as any).ECSY.System {
       
       if (fishHealth && fishHealth.isDead) return;
       
-      const nearbyFood = this.spatial.getEntitiesNear(fishPos, FOOD_DETECTION_RADIUS, FoodTag);
+      const nearbyFood = this.spatial.getEntitiesNear(fishPos, FOOD_DETECTION_RADIUS + fishHunger.value * 8, FoodTag);
       
       if (nearbyFood.length === 0) {
         fishBehavior.isHungry = fishHunger.value > 0.5;
@@ -62,7 +54,7 @@ export class FoodConsumptionSystem extends (window as any).ECSY.System {
         }
       });
       
-      if (!closestFood) return;
+      if (!closestFood || !closestFood.alive) return;
       
       const foodPos = closestFood.getComponent(Position);
       
@@ -72,8 +64,6 @@ export class FoodConsumptionSystem extends (window as any).ECSY.System {
         this.pursueFood(fish, fishPos, foodPos, fishVel, deltaTime, fishHunger.value);
       }
     });
-    
-    this.updateEatingAnimations(deltaTime);
   }
   
   pursueFood(fish: any, fishPos: any, foodPos: any, fishVel: any, deltaTime: number, hungerLevel: number) {
@@ -114,49 +104,11 @@ export class FoodConsumptionSystem extends (window as any).ECSY.System {
       fishHealth.current = Math.min(fishHealth.max, fishHealth.current + 5);
     }
     
-    this.startEatingAnimation(fish, time);
+    const fx = fish.getMutableComponent(Effects);
+    if (fx) { fx.pulse = 1; fx.flash = Math.max(fx.flash, 0.5); }
     
     food.remove();
     logger.debug(`Fish consumed food! Hunger: ${fishHunger.value.toFixed(2)}, Health: ${fishHealth?.current ?? 'N/A'}`);
-  }
-  
-  startEatingAnimation(fish: any, time: number) {
-    const renderable = fish.getComponent(Renderable);
-    if (!renderable || !renderable.model) return;
-    
-    this.eatingAnimations.set(fish, {
-      startTime: time,
-      duration: 500,
-      originalScale: renderable.model.scaling.clone(),
-      fish: fish
-    });
-  }
-  
-  updateEatingAnimations(_deltaTime: number) {
-    const currentTime = performance.now();
-    
-    this.eatingAnimations.forEach((animation, fish) => {
-      const elapsed = currentTime - animation.startTime;
-      const progress = Math.min(elapsed / animation.duration, 1.0);
-      
-      if (progress >= 1.0) {
-        const renderable = fish.getComponent(Renderable);
-        if (renderable && renderable.model) {
-          renderable.model.scaling.copyFrom(animation.originalScale);
-        }
-        this.eatingAnimations.delete(fish);
-      } else {
-        const renderable = fish.getComponent(Renderable);
-        if (renderable && renderable.model) {
-          const animPhase = progress * Math.PI * 2;
-          const scaleMultiplier = 1.0 + Math.sin(animPhase) * 0.2;
-          
-          renderable.model.scaling.x = animation.originalScale.x * scaleMultiplier;
-          renderable.model.scaling.y = animation.originalScale.y * scaleMultiplier;
-          renderable.model.scaling.z = animation.originalScale.z * scaleMultiplier;
-        }
-      }
-    });
   }
 }
 

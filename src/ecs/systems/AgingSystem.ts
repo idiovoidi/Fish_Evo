@@ -1,7 +1,9 @@
+import { ECSY } from '../ecsy';
 import { Age } from '../components/Age';
 import { Health } from '../components/Health';
+import { logger } from '../../utils/logger';
 
-export class AgingSystem extends (window as any).ECSY.System {
+export class AgingSystem extends ECSY.System {
   execute(delta: number, _time: number) {
     const deltaTime = delta / 1000;
     
@@ -13,7 +15,7 @@ export class AgingSystem extends (window as any).ECSY.System {
       
       if (!age.isAdult && age.value >= age.maturityAge) {
         age.isAdult = true;
-        console.log(`Fish reached maturity at age ${age.value.toFixed(1)} seconds`);
+        logger.debug(`Reached maturity at age ${age.value.toFixed(1)}s`);
       }
       
       if (health && !health.isDead) {
@@ -27,14 +29,14 @@ export class AgingSystem extends (window as any).ECSY.System {
           
           if (health.current <= 0) {
             health.isDead = true;
-            console.log(`Fish died of old age at ${age.value.toFixed(1)} seconds`);
+            health.cause = 'age';
           }
         }
         
         if (age.value >= age.maxAge) {
           health.isDead = true;
+          health.cause = 'age';
           health.current = 0;
-          console.log(`Fish died of natural causes at maximum age of ${age.maxAge} seconds`);
         }
       }
     });

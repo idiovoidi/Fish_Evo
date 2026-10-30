@@ -1,19 +1,19 @@
 {
-    "name": "yuka-babylon-navigation",
-    "version": "1.0.0",
-    "description": "A navigation simulation using Yuka and Babylon.js",
-    "main": "dist/app.js",
+    "name": "fish-evo",
+    "version": "2.0.0",
+    "description": "An evolving underwater ecosystem simulation: ECS-driven fish, sharks and crabs rendered with Babylon.js",
+    "private": true,
+    "type": "module",
     "scripts": {
-        "build": "tsc",
-        "build:watch": "tsc --watch",
-        "start": "npm run build && npx http-server . -o",
-        "debug": "npm run build && npx http-server . -p 5502",
+        "start": "vite",
         "dev": "vite",
+        "build": "tsc --noEmit && vite build",
+        "typecheck": "tsc --noEmit",
         "preview": "vite preview"
     },
     "dependencies": {
-        "ecsy": "^0.4.3",
-        "http-server": "^14.1.1"
+        "@babylonjs/core": "^8.0.0",
+        "ecsy": "^0.4.3"
     },
     "devDependencies": {
         "@types/node": "^25.5.0",

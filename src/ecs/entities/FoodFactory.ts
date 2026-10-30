@@ -1,7 +1,9 @@
 import { Position } from '../components/Position';
 import { Velocity } from '../components/Velocity';
 import { Renderable } from '../components/Renderable';
+import { Lifespan } from '../components/Lifespan';
 import { FoodTag } from '../components/Tags';
+import { SimulationConfig } from '../../config/simulation_config';
 
 interface FoodOptions {
   position?: { x?: number; y?: number; z?: number };
@@ -11,34 +13,30 @@ interface FoodOptions {
 
 export class FoodFactory {
   static create(world: any, options: FoodOptions = {}) {
-    const config = {
-      position: { 
-        x: (Math.random() - 0.5) * 80,
-        y: 30,
-        z: (Math.random() - 0.5) * 80,
-        ...options.position 
-      },
-      velocity: { 
-        x: 0, 
-        y: -1 - Math.random() * 2,
-        z: 0, 
-        maxSpeed: 3,
-        ...options.velocity 
-      },
-      renderable: { 
-        model: null, 
-        scale: 0.5 + Math.random() * 0.3,
-        ...options.renderable 
-      }
-    };
-    
-    const food = world
+    const bounds = SimulationConfig.world.bounds;
+    const span = (min: number, max: number) => min + 6 + Math.random() * (max - min - 12);
+
+    return world
       .createEntity()
-      .addComponent(Position, config.position)
-      .addComponent(Velocity, config.velocity)
-      .addComponent(Renderable, config.renderable)
+      .addComponent(Position, {
+        x: span(bounds.minX, bounds.maxX),
+        y: bounds.maxY - 1,
+        z: span(bounds.minZ, bounds.maxZ),
+        ...options.position
+      })
+      .addComponent(Velocity, {
+        x: 0,
+        y: -(0.9 + Math.random() * 1.1),
+        z: 0,
+        maxSpeed: 3,
+        ...options.velocity
+      })
+      .addComponent(Renderable, {
+        model: null,
+        scale: 0.8 + Math.random() * 0.5,
+        ...options.renderable
+      })
+      .addComponent(Lifespan, { age: 0, max: SimulationConfig.food.lifetime + 25 })
       .addComponent(FoodTag);
-    
-    return food;
   }
 }

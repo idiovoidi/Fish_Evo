@@ -1,3 +1,4 @@
+import { ECSY } from '../ecsy';
 import { Position } from '../components/Position';
 
 const CELL_SIZE = 10;
@@ -6,7 +7,7 @@ function cellKey(ix: number, iy: number, iz: number): string {
   return `${ix},${iy},${iz}`;
 }
 
-export class SpatialHashSystem extends (window as any).ECSY.System {
+export class SpatialHashSystem extends ECSY.System {
   grid: Map<string, any[]> = new Map();
 
   init() {

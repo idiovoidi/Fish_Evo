@@ -7,6 +7,8 @@ import { Hunger } from '../components/Hunger';
 import { Behavior } from '../components/Behavior';
 import { FishTag } from '../components/Tags';
 import { Genetics } from '../components/Genetics';
+import { Effects } from '../components/Effects';
+import { terrainHeight } from '../../environment/terrain_height';
 
 interface FishOptions {
   position?: { x?: number; y?: number; z?: number };
@@ -16,20 +18,29 @@ interface FishOptions {
   hunger?: { value?: number; rate?: number; lastFed?: number };
   behavior?: { schoolingPreference?: number; personalSpace?: number; isHungry?: boolean; isFleeing?: boolean; isSchooling?: boolean; isResting?: boolean; isMating?: boolean; lastBreedTime?: number; breedCooldown?: number };
   renderable?: { model?: any; scale?: number; visible?: boolean };
-  genetics?: { size?: number; speed?: number; metabolism?: number; color?: number[] };
+  genetics?: { size?: number; speed?: number; metabolism?: number; color?: number[]; generation?: number };
 }
 
 export class FishFactory {
+  /** Vivid reef palette: a random hue at high saturation, as 0-255 RGB. */
+  static randomColor(): number[] {
+    const h = Math.random();
+    const s = 0.55 + Math.random() * 0.4;
+    const v = 0.65 + Math.random() * 0.35;
+    const i = Math.floor(h * 6);
+    const f = h * 6 - i;
+    const p = v * (1 - s), q = v * (1 - f * s), t = v * (1 - (1 - f) * s);
+    const [r, g, b] = [[v, t, p], [q, v, p], [p, v, t], [p, q, v], [t, p, v], [v, p, q]][i % 6];
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+  }
+
   static create(world: any, options: FishOptions = {}) {
     const genetics = {
       size: 0.8 + Math.random() * 0.8,
       speed: 4 + Math.random() * 4,
       metabolism: 0.8 + Math.random() * 0.4,
-      color: [
-        Math.floor(80 + Math.random() * 120),
-        Math.floor(120 + Math.random() * 120),
-        Math.floor(150 + Math.random() * 105)
-      ],
+      color: FishFactory.randomColor(),
+      generation: 0,
       ...options.genetics
     };
     
@@ -49,10 +60,10 @@ export class FishFactory {
       position: { x: 0, y: 10, z: 0, ...options.position },
       velocity: initialVelocity,
       health: { current: 100, max: 100, regenRate: 0.1, isDead: false, ...options.health },
-      age: { value: 0, maturityAge: 60, maxAge: 300, ...options.age },
+      age: { value: 0, maturityAge: 40, maxAge: 420, ...options.age },
       hunger: { 
-        value: 0.4 + Math.random() * 0.3,
-        rate: 0.012 + Math.random() * 0.008,
+        value: 0.25 + Math.random() * 0.3,
+        rate: 0.005 + Math.random() * 0.004,
         ...options.hunger 
       },
       behavior: { 
@@ -64,7 +75,7 @@ export class FishFactory {
         isResting: false,
         isMating: false,
         lastBreedTime: 0,
-        breedCooldown: 30000,
+        breedCooldown: 20000,
         ...options.behavior 
       },
       renderable: { 
@@ -75,6 +86,10 @@ export class FishFactory {
       genetics: genetics
     };
     
+    // Keep newborns and spawns clear of the seabed.
+    const p = config.position;
+    p.y = Math.max(p.y, terrainHeight(p.x, p.z) + 2);
+
     const fish = world
       .createEntity()
       .addComponent(Position, config.position)
@@ -85,6 +100,7 @@ export class FishFactory {
       .addComponent(Behavior, config.behavior)
       .addComponent(Renderable, config.renderable)
       .addComponent(FishTag)
+      .addComponent(Effects)
       .addComponent(Genetics, config.genetics);
 
     return fish;

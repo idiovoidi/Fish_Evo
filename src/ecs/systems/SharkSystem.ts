@@ -1,3 +1,4 @@
+import { ECSY } from '../ecsy';
 import { Position } from '../components/Position';
 import { Velocity } from '../components/Velocity';
 import { PredatorState } from '../components/PredatorState';
@@ -5,9 +6,19 @@ import { Behavior } from '../components/Behavior';
 import { Genetics } from '../components/Genetics';
 import { SharkTag, FishTag } from '../components/Tags';
 import { Health } from '../components/Health';
+import { Effects } from '../components/Effects';
+import { logger } from '../../utils/logger';
+import { terrainHeight } from '../../environment/terrain_height';
+
+/** After a kill the shark loses interest in prey for a while. */
+const SATIATED_MS = 26000;
+/** Below this many fish the shark moves on and stays full much longer. */
+const SCARCE_PREY = 10;
+const PATROL_CEILING = 24;
+const PATROL_FLOOR_CLEARANCE = 5;
 import { SpatialHashSystem } from './SpatialHashSystem';
 
-export class SharkSystem extends (window as any).ECSY.System {
+export class SharkSystem extends ECSY.System {
   spatial: any;
 
   init() {
@@ -29,12 +40,14 @@ export class SharkSystem extends (window as any).ECSY.System {
       const baseSpeed = genetics?.speed || velocity.maxSpeed;
       const chaseSpeed = predState.chaseSpeed || baseSpeed * 1.3;
       
-      const nearbyFish = this.spatial.getEntitiesNear(position, huntRadius, FishTag);
+      const satiated = time < predState.satiatedUntil;
+      const nearbyFish = satiated ? [] : this.spatial.getEntitiesNear(position, huntRadius, FishTag);
       
       if (nearbyFish.length === 0) {
         this.patrolBehavior(shark, velocity, deltaTime, baseSpeed);
         predState.isChasing = false;
         predState.huntingTarget = null;
+        this.clampVelocity(velocity);
         return;
       }
       
@@ -84,8 +97,8 @@ export class SharkSystem extends (window as any).ECSY.System {
       velocity.z *= speedAdjust;
     }
     
-    if (position.y > 20) velocity.y -= 1.5 * deltaTime;
-    if (position.y < 8) velocity.y += 1.5 * deltaTime;
+    if (position.y > PATROL_CEILING) velocity.y -= 1.5 * deltaTime;
+    if (position.y < terrainHeight(position.x, position.z) + PATROL_FLOOR_CLEARANCE) velocity.y += 2.5 * deltaTime;
   }
   
   stalkBehavior(shark: any, targetPos: any, velocity: any, speed: number, deltaTime: number) {
@@ -134,6 +147,10 @@ export class SharkSystem extends (window as any).ECSY.System {
         
         if (targetHealth.current <= 0) {
           targetHealth.isDead = true;
+          targetHealth.cause = 'predator';
+          const scarcity = this.queries.fish.results.length < SCARCE_PREY ? 3 : 1;
+          shark.getMutableComponent(PredatorState).satiatedUntil = time + SATIATED_MS * scarcity;
+          if (shark.hasComponent(Effects)) shark.getMutableComponent(Effects).flash = 0.6;
           
           if (targetFish.hasComponent(Velocity)) {
             const fishVel = targetFish.getMutableComponent(Velocity);
@@ -146,7 +163,7 @@ export class SharkSystem extends (window as any).ECSY.System {
         predState.lastBiteTime = time;
         predState.lastAttackTime = time;
         
-        console.log(`Shark attacked ${targetHealth.isDead ? 'and killed' : 'but damaged'} fish!`);
+        logger.debug(`Shark attacked ${targetHealth.isDead ? 'and killed' : 'but damaged'} fish!`);
       }
     }
   }
@@ -198,5 +215,6 @@ export class SharkSystem extends (window as any).ECSY.System {
 }
 
 (SharkSystem as any).queries = {
-  sharks: { components: [SharkTag, Position, Velocity, PredatorState] }
+  sharks: { components: [SharkTag, Position, Velocity, PredatorState] },
+  fish: { components: [FishTag] }
 };

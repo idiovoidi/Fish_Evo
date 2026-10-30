@@ -5,6 +5,8 @@ import { Health } from '../components/Health';
 import { Age } from '../components/Age';
 import { Behavior } from '../components/Behavior';
 import { CrabTag } from '../components/Tags';
+import { SimulationConfig } from '../../config/simulation_config';
+import { terrainHeight } from '../../environment/terrain_height';
 
 interface CrabOptions {
   position?: { x?: number; y?: number; z?: number };
@@ -28,7 +30,7 @@ export class CrabFactory {
         x: 0, 
         y: 0, 
         z: 0, 
-        maxSpeed: (window as any).SimulationConfig?.entities?.crabs?.maxSpeed || 2,
+        maxSpeed: SimulationConfig.entities.crabs.maxSpeed,
         ...options.velocity 
       },
       health: { 
@@ -41,7 +43,7 @@ export class CrabFactory {
       age: {
         value: 0,
         maturityAge: 120,
-        maxAge: 600,
+        maxAge: 1e7, // crabs don't breed, so they don't die of old age either
         isAdult: false,
         ...options.age
       },
@@ -66,6 +68,9 @@ export class CrabFactory {
       }
     };
     
+    const p = config.position;
+    p.y = terrainHeight(p.x, p.z) + SimulationConfig.entities.crabs.spawnHeight;
+
     const crab = world
       .createEntity()
       .addComponent(Position, config.position)
