@@ -1,0 +1,1 @@
+{"version":3,"file":"SchoolingSystem.d.ts","sourceRoot":"","sources":["../../../src/ecs/systems/SchoolingSystem.ts"],"names":[],"mappings":";AAQA,qBAAa,eAAgB,SAAQ,oBAA2B;IAC9D,OAAO,EAAE,GAAG,CAAC;IACb,cAAc,EAAE,MAAM,CAAK;IAC3B,kBAAkB,EAAE,MAAM,CAAO;IACjC,cAAc,EAAE,MAAM,CAAK;IAC3B,eAAe,EAAE,MAAM,CAAK;IAE5B,IAAI;IAQJ,OAAO,CAAC,KAAK,EAAE,MAAM;CAoGtB"}

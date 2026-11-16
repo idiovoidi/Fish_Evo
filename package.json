@@ -1,23 +1,23 @@
 {
-    "name": "navigation-demo",
-    "version": "1.0.0",
-    "description": "Navigation and AI demo using Babylon.js, Recast.js, and GOAP",
-    "main": "navmesh.js",
+    "name": "fish-evo",
+    "version": "2.0.0",
+    "description": "An evolving underwater ecosystem simulation: ECS-driven fish, sharks and crabs rendered with Babylon.js",
+    "private": true,
     "type": "module",
     "scripts": {
-        "start": "http-server . -o",
-        "dev": "http-server . -o -c-1",
-        "postinstall": "npm run setup",
-        "setup": "mkdir -p public/lib && cp node_modules/@babylonjs/core/babylon.js public/lib/ && cp node_modules/@babylonjs/loaders/babylonjs.loaders.js public/lib/ && cp node_modules/recast-detour/dist/recast.js public/lib/"
+        "start": "vite",
+        "dev": "vite",
+        "build": "tsc --noEmit && vite build",
+        "typecheck": "tsc --noEmit",
+        "preview": "vite preview"
     },
     "dependencies": {
-        "@babylonjs/core": "6.38.1",
-        "@babylonjs/loaders": "6.38.1",
-        "@babylonjs/materials": "6.38.1",
-        "recast-detour": "1.6.1",
-        "goap": "1.1.0"
+        "@babylonjs/core": "^8.0.0",
+        "ecsy": "^0.4.3"
     },
     "devDependencies": {
-        "http-server": "14.1.1"
+        "@types/node": "^25.5.0",
+        "typescript": "^5.9.3",
+        "vite": "^5.4.0"
     }
-} 
+}

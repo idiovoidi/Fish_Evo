@@ -1,1 +1,12 @@
 node_modules
+
+# VS Code
+.vscode/
+
+# Logs
+logs
+*.log
+
+# Build output
+dist/
+build/

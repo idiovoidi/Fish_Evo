@@ -1,0 +1,1 @@
+{"version":3,"file":"CrabSystem.d.ts","sourceRoot":"","sources":["../../../src/ecs/systems/CrabSystem.ts"],"names":[],"mappings":";AAKA,qBAAa,UAAW,SAAQ,eAA2B;IACzD,OAAO,CAAC,KAAK,EAAE,MAAM,EAAE,IAAI,EAAE,MAAM;IAmEnC,eAAe,CAAC,MAAM,EAAE,GAAG,EAAE,QAAQ,EAAE,GAAG,EAAE,QAAQ,EAAE,GAAG,EAAE,QAAQ,EAAE,GAAG,EAAE,EAAE,EAAE,MAAM;CAiCrF"}

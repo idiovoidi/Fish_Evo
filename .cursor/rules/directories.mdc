@@ -1,0 +1,15 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Core Directories
+
+The codebase is organized into several key directories:
+
+*   `core/`: Likely contains core simulation logic, utilities, or base classes.
+*   `ecs/`: Suggests an Entity-Component-System architecture implementation.
+*   `ai/`: Probably holds artificial intelligence logic and behaviors for entities.
+*   `entities/`: May contain entity-specific components, configurations, or subclasses.
+*   `scripts/`: Potentially holds build scripts, utility scripts, or deployment scripts.
+*   `models/`: Might contain 3D models or data structures related to entities or the environment.

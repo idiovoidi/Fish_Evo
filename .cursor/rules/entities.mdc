@@ -1,0 +1,18 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Entity Definitions
+
+This project defines several core entities for the simulation. Each entity's primary logic is contained within its own JavaScript file:
+
+*   **Fish:** [fish.js](mdc:fish.js)
+*   **Shark:** [shark.js](mdc:shark.js)
+*   **Crab:** [crab.js](mdc:crab.js)
+*   **Seaweed:** [seaweed.js](mdc:seaweed.js)
+*   **Coral:** [coral.js](mdc:coral.js)
+*   **Food:** [food.js](mdc:food.js)
+*   **Ocean Debris:** [ocean_debris.js](mdc:ocean_debris.js)
+
+Additional entity-related code might be found in the `entities/` directory.
