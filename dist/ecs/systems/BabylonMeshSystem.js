@@ -28,10 +28,18 @@ export class BabylonMeshSystem extends window.ECSY.System {
     createModelTemplates() {
         if (!this.scene)
             return;
-        // These will be loaded dynamically from the model files
-        // For now, just initialize the arrays
-        this.fishModels = [];
-        this.foodModels = [];
+        // Create shark template (elongated sphere)
+        this.sharkTemplate = window.BABYLON.MeshBuilder.CreateSphere("shark_template", { diameter: 1, segments: 8 }, this.scene);
+        this.sharkTemplate.scaling.set(3, 1, 1.2);
+        this.sharkTemplate.setEnabled(false);
+        // Create crab template (flattened box)
+        this.crabTemplate = window.BABYLON.MeshBuilder.CreateBox("crab_template", { size: 1 }, this.scene);
+        this.crabTemplate.scaling.set(1.5, 0.5, 1.2);
+        this.crabTemplate.setEnabled(false);
+        // Create food template (small sphere)
+        const foodTemplate = window.BABYLON.MeshBuilder.CreateSphere("food_template", { diameter: 0.5, segments: 6 }, this.scene);
+        foodTemplate.setEnabled(false);
+        this.foodModels = [foodTemplate];
     }
     execute() {
         if (!this.scene)

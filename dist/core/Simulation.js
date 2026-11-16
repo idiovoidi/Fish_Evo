@@ -56,7 +56,7 @@ export class Simulation {
     }
     _initialize(scene) {
         this.scene = scene;
-        this.babylonMeshSystem.setScene(scene);
+        this.babylonMeshSystem.setScene(scene.getScene());
         const cfg = (typeof window !== 'undefined' && window.SimulationConfig) ? window.SimulationConfig : null;
         setDebugLogging(!!cfg?.debug);
         const foodCfg = cfg?.food || {};
