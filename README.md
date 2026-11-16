@@ -1,5 +1,7 @@
 # Fish Evo
 
+![Fish Evo screenshot](docs/screenshot.png)
+
 An evolving underwater ecosystem. Schools of fish forage, breed and pass their genes to the next generation while a shark hunts them and crabs scuttle across a procedural reef. Everything is generated in code: no external assets, no CDN, runs offline.
 
 Built with [Babylon.js](https://www.babylonjs.com/) for rendering and [ECSY](https://ecsy.io/) for the simulation, bundled with Vite and TypeScript.
